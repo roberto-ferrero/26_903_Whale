@@ -1,152 +1,128 @@
 import GUI from 'lil-gui';
-import { TONE_MAPPINGS } from './viewer.js';
+import { CAMERA_MODES, RAILS } from './cameras.js';
 
-const STORAGE_KEY = 'whale-viewer-gui';
+/**
+ * Panel lil-gui (Fase 2.2): una carpeta por módulo. Los estados de los módulos están registrados
+ * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
+ */
+export function createGui(m) {
+  const { clock, fsm, anim, lod, look, cameras, lighting, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const gui = new GUI({ title: 'Ballena jorobada' });
 
-const CAMERA_VIEWS = {
-  'Tres cuartos': [16, 5, 12],
-  Lateral: [22, 0.4, 0],
-  Frontal: [0, 1, 20],
-  Superior: [0, 26, 0.01],
-  Inferior: [0, -24, 0.01],
-  Cabeza: [6, 2, 10],
-  Cola: [5, 2, -12],
-};
+  // ------------------------------------------------------------------ tiempo (2.1)
+  const fTime = gui.addFolder('Tiempo');
+  fTime.add(clock.state, 'paused').name('Pausa (espacio)').listen();
+  fTime.add(clock.state, 'timeScale', 0, 3, 0.05).name('Velocidad (cámara lenta < 1)');
+  fTime.add({ step: () => clock.step() }, 'step').name('Avanzar un fotograma (.)');
+  fTime.add(clock.state, 'stepSize', 1 / 120, 0.2, 1 / 120).name('Paso (s)');
+  fTime.add(clock.state, 'time').name('Tiempo simulado (s)').listen().disable();
 
-/** Panel lil-gui con todas las opciones del visor. */
-export function createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor, breach, stats }) {
-  const { renderer, scene, camera, controls, sun, sunParams, updateSun, hemi } = viewer;
-  const gui = new GUI({ title: 'Ballena jorobada · visor' });
+  // ------------------------------------------------------------------ comportamiento (2.4)
+  const fWhale = gui.addFolder('Ballena · comportamiento');
+  const p = fsm.params;
+  fWhale.add(p, 'enabled').name('Máquina de estados').onChange((v) => fsm.setEnabled(v));
+  fWhale.add({ jump: () => fsm.jump() }, 'jump').name('▲ Saltar ahora (J)');
+  fWhale.add(p, 'autoJump').name('Salto automático');
+  fWhale.add(p, 'autoInterval', 1, 60, 0.5).name('Nadar antes de saltar (s)');
+  fWhale.add(fsm.state, 'label').name('Estado').listen().disable();
+  fWhale.add(fsm.state, 'lastEvent').name('Último evento').listen().disable();
+  fWhale.add(fsm.state, 'airTime').name('Tiempo en el aire').listen().disable();
+  fWhale.add(fsm.state, 'apexHeight').name('Altura máxima').listen().disable();
+  fWhale.add(p, 'showPath').name('Ver trayectoria del salto').onChange(() => fsm.apply());
+  const fSwim = fWhale.addFolder('Nado');
+  fSwim.add(p, 'depth', 3, 40, 0.5).name('Profundidad (m)');
+  fSwim.add(p, 'swimSpeed', 0.5, 5, 0.1).name('Velocidad (m/s)');
+  fSwim.add(p, 'wander', 0, 0.5, 0.01).name('Deriva del rumbo (rad/s)');
+  fSwim.add(p, 'radius', 10, 200, 1).name('Radio de vuelta al centro (m)');
+  const fTraj = fWhale.addFolder('Salto (próximo)');
+  fTraj.add(p, 'ascentTime', 1.5, 12, 0.1).name('Duración ascenso (s)');
+  fTraj.add(p, 'exitSpeed', 3, 14, 0.1).name('Velocidad de salida (m/s)');
+  fTraj.add(p, 'exitAngle', 30, 89, 1).name('Ángulo de salida (°)');
+  fTraj.add(p, 'roll', 0, 270, 5).name('Giro sobre su eje (°)');
+  fTraj.add(p, 'rollSide', ['Derecha', 'Izquierda']).name('Sentido del giro');
+  fTraj.add(p, 'landingPitch', -60, 30, 1).name('Inclinación al caer (°)');
+  fTraj.add(p, 'submergeTime', 0.8, 6, 0.1).name('Duración inmersión (s)');
+  fTraj.add(p, 'submergeDepth', 1, 15, 0.5).name('Profundidad tras impacto (m)');
+  fTraj.add(p, 'recoverTime', 1, 15, 0.5).name('Duración recuperación (s)');
+  fSwim.close();
+  fTraj.close();
 
-  // ------------------------------------------------------------------ animación
-  const fAnim = gui.addFolder('Animación');
+  // ------------------------------------------------------------------ animación (modo libre)
+  const fAnim = gui.addFolder('Animación (modo libre)');
   fAnim.add(anim.state, 'clip', anim.names).name('Clip').listen().onChange((name) => anim.play(name));
-  fAnim.add(anim.state, 'playing').name('Reproducir');
-  fAnim.add(anim.state, 'speed', 0, 3, 0.05).name('Velocidad');
   fAnim.add(anim.state, 'loop').name('Bucle').onChange(() => anim.applyLoop());
   fAnim.add(anim.state, 'fade', 0, 2, 0.05).name('Fundido (s)');
-  const timeCtrl = fAnim.add(anim.state, 'time', 0, 6, 0.01).name('Tiempo (s)').listen()
-    .onChange((t) => { anim.state.playing = false; anim.seek(t); });
+  const timeCtrl = fAnim.add(anim.state, 'time', 0, 6, 0.01).name('Tiempo del clip (s)').listen()
+    .onChange((t) => { clock.state.paused = true; anim.seek(t); });
   const updateTimeRange = () => timeCtrl.max(Math.max(anim.state.duration, 0.01)).updateDisplay();
   fAnim.controllers[0].onFinishChange(updateTimeRange);
-  updateTimeRange();
   fAnim.add({ rest: () => anim.restPose() }, 'rest').name('Pose de reposo');
+  updateTimeRange();
 
-  // ------------------------------------------------------------------ salto (secuencia de la Fase 1.7)
-  const fBreach = gui.addFolder('Salto (secuencia)');
-  const br = breach.state;
-  const bp = breach.params;
-  const breachActions = {
-    iniciar() {
-      helpers.state.water = true;
-      helpers.apply();
-      breach.start();
-    },
-    detener() { breach.stop(); },
-    relanzar() { breach.restart(); },
-    vista() {
-      camera.position.set(34, 3, 2);
-      controls.target.set(0, 1.5, 2);
-      controls.update();
-    },
-  };
-  fBreach.add(breachActions, 'iniciar').name('▶ Iniciar secuencia');
-  fBreach.add(breachActions, 'detener').name('■ Detener');
-  fBreach.add(breachActions, 'relanzar').name('↻ Relanzar ciclo');
-  fBreach.add(breachActions, 'vista').name('Vista lateral del salto');
-  fBreach.add(bp, 'repeat').name('Repetir').listen();
-  fBreach.add(br, 'showPath').name('Ver trayectoria').onChange(breach.applyVisibility);
-  fBreach.add(br, 'phase').name('Fase').listen().disable();
-  fBreach.add(br, 'lastEvent').name('Último evento').listen().disable();
-  fBreach.add(br, 'airTime').name('Tiempo en el aire').listen().disable();
-  fBreach.add(br, 'apexHeight').name('Altura máxima').listen().disable();
-  const fTraj = fBreach.addFolder('Trayectoria');
-  const rebuild = () => breach.rebuild();
-  fTraj.add(bp, 'depth', 3, 40, 0.5).name('Profundidad de nado (m)').onChange(rebuild);
-  fTraj.add(bp, 'swimSpeed', 0.5, 5, 0.1).name('Velocidad de nado (m/s)').onChange(rebuild);
-  fTraj.add(bp, 'swimTime', 0, 15, 0.5).name('Nado previo (s)').onChange(rebuild);
-  fTraj.add(bp, 'ascentTime', 1.5, 12, 0.1).name('Duración ascenso (s)').onChange(rebuild);
-  fTraj.add(bp, 'exitSpeed', 3, 14, 0.1).name('Velocidad de salida (m/s)').onChange(rebuild);
-  fTraj.add(bp, 'exitAngle', 30, 89, 1).name('Ángulo de salida (°)').onChange(rebuild);
-  fTraj.add(bp, 'roll', 0, 270, 5).name('Giro sobre su eje (°)').onChange(rebuild);
-  fTraj.add(bp, 'rollSide', ['Derecha', 'Izquierda']).name('Sentido del giro').onChange(rebuild);
-  fTraj.add(bp, 'landingPitch', -60, 30, 1).name('Inclinación al caer (°)').onChange(rebuild);
-  fTraj.add(bp, 'submergeTime', 0.8, 6, 0.1).name('Duración inmersión (s)').onChange(rebuild);
-  fTraj.add(bp, 'submergeDepth', 1, 15, 0.5).name('Profundidad tras impacto (m)').onChange(rebuild);
-  fTraj.add(bp, 'recoverTime', 1, 15, 0.5).name('Duración recuperación (s)').onChange(rebuild);
-  fTraj.close();
+  // ------------------------------------------------------------------ cámara (2.3)
+  const fCam = gui.addFolder('Cámara');
+  const c = cameras.state;
+  fCam.add(c, 'mode', CAMERA_MODES).name('Modo (C)').listen().onChange(cameras.apply);
+  fCam.add(c, 'rail', RAILS).name('Plano cinemático').onChange(cameras.apply);
+  fCam.add(c, 'shot').name('Plano actual').listen().disable();
+  fCam.add(c, 'transition', 0, 5, 0.1).name('Transición (s)');
+  fCam.add(c, 'hardCuts').name('Director: cortes secos');
+  fCam.add(c, 'followSmoothing', 0.5, 15, 0.5).name('Suavizado seguimiento');
+  fCam.add(c, 'railSpeed', 0, 4, 0.1).name('Velocidad de los raíles');
+  fCam.add(c, 'fov', 10, 90, 1).name('Campo de visión (°)').onChange(cameras.apply);
+  fCam.add(c, 'autoRotate').name('Girar sola (órbita)').onChange(cameras.apply);
+  fCam.add(c, 'rotateSpeed', 0.1, 10, 0.1).name('Velocidad de giro').onChange(cameras.apply);
+  const fViews = fCam.addFolder('Vistas (órbita)');
+  const views = {};
+  for (const name of cameras.views) {
+    views[name] = () => cameras.setView(name);
+    fViews.add(views, name).name(name);
+  }
+  fViews.close();
 
   // ------------------------------------------------------------------ modelo
   const fModel = gui.addFolder('Modelo');
   fModel.add(lod.state, 'mode', ['Auto', 'LOD0', 'LOD1', 'LOD2']).name('LOD');
   fModel.add(lod.state, 'dist1', 5, 200, 1).name('Distancia LOD1 (m)');
   fModel.add(lod.state, 'dist2', 10, 500, 1).name('Distancia LOD2 (m)');
-  const skin = whale.materials.Humpback;
-  const barbs = whale.materials.Barbs;
-  const matState = {
-    wetness: 0,
-    wetDarken: whale.uniforms.wetDarken.value,
-    normalMap: true,
-    normalScale: 1,
-    aoIntensity: skin.aoMapIntensity,
-    wireframe: false,
-    barbs: true,
-  };
-  const normalMaps = new Map(Object.values(whale.materials).map((m) => [m, m.normalMap]));
-  fModel.add(matState, 'wetness', 0, 1, 0.01).name('Mojado').onChange((v) => { whale.uniforms.wetness.value = v; });
-  fModel.add(matState, 'wetDarken', 0, 0.4, 0.01).name('Oscurecer al mojar').onChange((v) => { whale.uniforms.wetDarken.value = v; });
-  fModel.add(matState, 'normalMap').name('Normal map').onChange((on) => {
-    for (const [m, map] of normalMaps) { m.normalMap = on ? map : null; m.needsUpdate = true; }
-  });
-  fModel.add(matState, 'normalScale', 0, 3, 0.05).name('Intensidad normal').onChange((v) => {
-    for (const m of normalMaps.keys()) m.normalScale.set(v, v);
-  });
-  fModel.add(matState, 'aoIntensity', 0, 2, 0.05).name('Intensidad AO').onChange((v) => { skin.aoMapIntensity = v; });
-  fModel.add(matState, 'wireframe').name('Alambre').onChange((on) => {
-    for (const m of Object.values(whale.materials)) m.wireframe = on;
-  });
-  if (barbs) {
-    fModel.add(matState, 'barbs').name('Pelos (barbs)').onChange((on) => {
-      whale.meshes.forEach((mesh) => { if (mesh.material === barbs) mesh.visible = on; });
-    });
-  }
+  const L = look.state;
+  fModel.add(L, 'wetness', 0, 1, 0.01).name('Mojado').onChange(look.apply);
+  fModel.add(L, 'wetDarken', 0, 0.4, 0.01).name('Oscurecer al mojar').onChange(look.apply);
+  fModel.add(L, 'normalMap').name('Normal map').onChange(look.apply);
+  fModel.add(L, 'normalScale', 0, 3, 0.05).name('Intensidad normal').onChange(look.apply);
+  fModel.add(L, 'aoIntensity', 0, 2, 0.05).name('Intensidad AO').onChange(look.apply);
+  fModel.add(L, 'wireframe').name('Alambre').onChange(look.apply);
+  fModel.add(L, 'barbs').name('Pelos (barbs)').onChange(look.apply);
 
-  // ------------------------------------------------------------------ iluminación
-  const fLight = gui.addFolder('Iluminación');
-  const lightState = {
-    toneMapping: 'AgX',
-    exposure: renderer.toneMappingExposure,
-    environment: scene.environmentIntensity,
-    background: `#${scene.background.getHexString()}`,
-    sunIntensity: sun.intensity,
-    sunColor: `#${sun.color.getHexString()}`,
-    hemiIntensity: hemi.intensity,
-  };
-  fLight.add(lightState, 'toneMapping', Object.keys(TONE_MAPPINGS)).name('Tone mapping')
-    .onChange((k) => { renderer.toneMapping = TONE_MAPPINGS[k]; });
-  fLight.add(lightState, 'exposure', 0.1, 3, 0.01).name('Exposición').onChange((v) => { renderer.toneMappingExposure = v; });
-  fLight.add(lightState, 'environment', 0, 2, 0.01).name('Luz de entorno').onChange((v) => { scene.environmentIntensity = v; });
-  fLight.add(lightState, 'sunIntensity', 0, 8, 0.05).name('Sol · intensidad').onChange((v) => { sun.intensity = v; });
-  fLight.addColor(lightState, 'sunColor').name('Sol · color').onChange((v) => sun.color.set(v));
-  fLight.add(sunParams, 'elevation', -10, 90, 1).name('Sol · elevación (°)').onChange(updateSun);
-  fLight.add(sunParams, 'azimuth', -180, 180, 1).name('Sol · azimut (°)').onChange(updateSun);
-  fLight.add(lightState, 'hemiIntensity', 0, 3, 0.05).name('Hemisférica').onChange((v) => { hemi.intensity = v; });
-  fLight.addColor(lightState, 'background').name('Fondo').onChange((v) => scene.background.set(v));
+  // ------------------------------------------------------------------ iluminación y ambiente
+  const fLight = gui.addFolder('Iluminación y ambiente');
+  const li = lighting.state;
+  fLight.add(li, 'toneMapping', lighting.toneMappings).name('Tone mapping').onChange(lighting.apply);
+  fLight.add(li, 'exposure', 0.1, 3, 0.01).name('Exposición').onChange(lighting.apply);
+  fLight.add(li, 'environment', 0, 2, 0.01).name('Luz de entorno').onChange(lighting.apply);
+  fLight.add(li, 'sunIntensity', 0, 8, 0.05).name('Sol · intensidad').onChange(lighting.apply);
+  fLight.addColor(li, 'sunColor').name('Sol · color').onChange(lighting.apply);
+  fLight.add(li, 'sunElevation', -10, 90, 1).name('Sol · elevación (°)').onChange(lighting.apply);
+  fLight.add(li, 'sunAzimuth', -180, 180, 1).name('Sol · azimut (°)').onChange(lighting.apply);
+  fLight.add(li, 'hemiIntensity', 0, 3, 0.05).name('Hemisférica').onChange(lighting.apply);
+  fLight.addColor(li, 'background').name('Fondo y niebla').onChange(lighting.apply);
+  fLight.add(li, 'fog').name('Niebla').onChange(lighting.apply);
+  fLight.add(li, 'fogNear', 0, 500, 5).name('Niebla desde (m)').onChange(lighting.apply);
+  fLight.add(li, 'fogFar', 10, 2000, 10).name('Niebla hasta (m)').onChange(lighting.apply);
 
   // ------------------------------------------------------------------ ayudas
   const fHelp = gui.addFolder('Ayudas');
   const h = helpers.state;
-  fHelp.add(h, 'grid').name('Rejilla (1 m)').onChange(helpers.apply);
-  fHelp.add(h, 'gridHeight', -10, 5, 0.1).name('Altura rejilla (m)').onChange(helpers.apply);
-  fHelp.add(h, 'axes').name('Ejes (3 m)').onChange(helpers.apply);
-  fHelp.add(h, 'box').name('Caja envolvente').onChange(helpers.apply);
   fHelp.add(h, 'water').name('Plano de agua').onChange(helpers.apply);
   fHelp.add(h, 'waterLevel', -10, 10, 0.05).name('Nivel del agua (m)').onChange(helpers.apply);
   fHelp.add(h, 'waterOpacity', 0, 1, 0.01).name('Opacidad del agua').onChange(helpers.apply);
+  fHelp.addColor(h, 'waterColor').name('Color del agua').onChange(helpers.apply);
+  fHelp.add(h, 'grid').name('Rejilla (1 m)').onChange(helpers.apply);
+  fHelp.add(h, 'gridHeight', -60, 5, 0.5).name('Altura rejilla (m)').onChange(helpers.apply);
+  fHelp.add(h, 'axes').name('Ejes (3 m)').onChange(helpers.apply);
+  fHelp.add(h, 'box').name('Caja envolvente').onChange(helpers.apply);
   fHelp.add(h, 'sunHelper').name('Dirección del sol').onChange(helpers.apply);
-  fHelp.add(h, 'human').name('Persona 1,8 m').onChange(helpers.apply);
-  const statsState = { visible: true };
-  fHelp.add(statsState, 'visible').name('Estadísticas').onChange((v) => { stats.el.style.display = v ? '' : 'none'; });
+  fHelp.add(h, 'human').name('Persona 1,8 m (en el agua)').onChange(helpers.apply);
 
   // ------------------------------------------------------------------ esqueleto
   const fSkel = gui.addFolder('Esqueleto');
@@ -176,50 +152,59 @@ export function createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor,
   fAnchor.add(an, 'trailLength', 50, 2000, 10).name('Longitud estela (puntos)');
   fAnchor.add({ clear: () => anchor.clearTrail() }, 'clear').name('Borrar estela');
   fAnchor.add(an, 'dropLine').name('Línea al agua').onChange(anchor.apply);
-  fAnchor.add(an, 'follow').name('Cámara lo sigue');
-  fAnchor.add({ focus: () => anchor.focus() }, 'focus').name('Centrar cámara aquí');
   fAnchor.add(an, 'position').name('Posición').listen().disable();
   fAnchor.add(an, 'heightOverWater').name('Altura sobre el agua').listen().disable();
 
-  // ------------------------------------------------------------------ cámara
-  const fCam = gui.addFolder('Cámara');
-  const camState = { fov: camera.fov, autoRotate: false, rotateSpeed: 1 };
-  const views = {};
-  for (const [name, pos] of Object.entries(CAMERA_VIEWS)) {
-    views[name] = () => {
-      camera.position.set(...pos);
-      controls.target.set(0, 0.4, 0);
-      controls.update();
-    };
-    fCam.add(views, name).name(`Vista: ${name.toLowerCase()}`);
-  }
-  fCam.add(camState, 'fov', 10, 90, 1).name('Campo de visión (°)').onChange((v) => { camera.fov = v; camera.updateProjectionMatrix(); });
-  fCam.add(camState, 'autoRotate').name('Girar sola').onChange((v) => { controls.autoRotate = v; });
-  fCam.add(camState, 'rotateSpeed', 0.1, 10, 0.1).name('Velocidad de giro').onChange((v) => { controls.autoRotateSpeed = v; });
+  // ------------------------------------------------------------------ depuración (2.5)
+  const fDebug = gui.addFolder('Depuración');
+  fDebug.add(debug.state, 'view', debug.views).name('Vista de buffer').onChange(debug.apply);
+  fDebug.add(debug.state, 'depthRange', 5, 300, 1).name('Rango profundidad (m)').onChange(debug.apply);
+  fDebug.add(debug.state, 'timeline').name('Línea de tiempo').onChange(debug.apply);
+  const statsState = { visible: true };
+  fDebug.add(statsState, 'visible').name('Estadísticas').onChange((v) => { stats.el.style.display = v ? '' : 'none'; });
 
-  // ------------------------------------------------------------------ guardar / restablecer
-  const defaults = gui.save();
-  const persist = {
-    guardar() {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(gui.save())); } catch { /* almacenamiento no disponible */ }
+  // ------------------------------------------------------------------ presets y URL (2.2)
+  const fPresets = gui.addFolder('Presets y URL');
+  const presetState = { preset: presets[0]?.nombre ?? '', autoURL: true };
+  const byName = Object.fromEntries(presets.map((pr) => [pr.nombre, pr]));
+  const presetInfo = { descripcion: presets[0]?.descripcion ?? '' };
+  fPresets.add(presetState, 'preset', Object.keys(byName)).name('Preset').onChange((n) => { presetInfo.descripcion = byName[n].descripcion; });
+  fPresets.add(presetInfo, 'descripcion').name('Descripción').listen().disable();
+  fPresets.add({
+    aplicar() {
+      params.reset();
+      params.apply(byName[presetState.preset].valores);
+      if (presetState.autoURL) params.writeURL();
     },
+  }, 'aplicar').name('Aplicar preset');
+  fPresets.add(presetState, 'autoURL').name('Guardar cambios en la URL');
+  fPresets.add({
+    async copiar() {
+      const url = params.shareURL();
+      try { await navigator.clipboard.writeText(url); } catch { window.prompt('Copia este enlace:', url); }
+    },
+  }, 'copiar').name('Copiar enlace con los ajustes');
+  fPresets.add({
+    exportar() {
+      const nombre = window.prompt('Nombre del preset:', 'Mi preset');
+      if (!nombre) return;
+      const blob = new Blob([JSON.stringify(params.toPreset(nombre), null, 2)], { type: 'application/json' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `${nombre.replace(/\W+/g, '_')}.json` });
+      a.click();
+      URL.revokeObjectURL(a.href);
+    },
+  }, 'exportar').name('Exportar preset (JSON)');
+  fPresets.add({
     restablecer() {
-      gui.load(defaults);
-      try { localStorage.removeItem(STORAGE_KEY); } catch { /* idem */ }
+      params.reset();
+      params.writeURL();
     },
-  };
-  gui.add(persist, 'guardar').name('Guardar ajustes');
-  gui.add(persist, 'restablecer').name('Restablecer');
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) gui.load(JSON.parse(saved));
-  } catch { /* sin ajustes guardados */ }
-  updateTimeRange();
+  }, 'restablecer').name('Restablecer todo');
 
-  fLight.close();
-  fHelp.close();
-  fSkel.close();
-  fAnchor.close();
-  fCam.close();
+  // los cambios del panel se guardan en la URL; al aplicar presets o la URL se refresca el panel
+  gui.onFinishChange(() => { if (presetState.autoURL) params.writeURL(); });
+  params.onChange(() => { gui.controllersRecursive().forEach((ctrl) => ctrl.updateDisplay()); updateTimeRange(); });
+
+  for (const f of [fAnim, fModel, fLight, fHelp, fSkel, fAnchor, fDebug]) f.close();
   return gui;
 }

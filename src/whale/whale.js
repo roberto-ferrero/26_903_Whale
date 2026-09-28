@@ -124,13 +124,11 @@ export function createLodController(whale) {
   };
 }
 
-/** Reproducción de clips con fundido, velocidad, bucle y control del tiempo. */
+/** Reproducción de clips con fundido, bucle y control del tiempo (el ritmo lo marca el reloj de simulación). */
 export function createAnimationController(whale) {
   const names = Object.keys(whale.actions);
   const state = {
     clip: names.includes('swim_idle') ? 'swim_idle' : names[0],
-    playing: true,
-    speed: 1,
     loop: true,
     fade: 0.6,
     time: 0,
@@ -185,8 +183,8 @@ export function createAnimationController(whale) {
       current.time = t;
       whale.mixer.update(0);
     },
+    /** @param {number} dt tiempo simulado (0 en pausa) */
     update(dt) {
-      whale.mixer.timeScale = state.playing ? state.speed : 0;
       whale.mixer.update(dt);
       if (current) {
         state.time = current.time;

@@ -1,23 +1,25 @@
 import * as THREE from 'three/webgpu';
 
 /**
- * Ayudas visuales: rejilla, ejes, caja de la malla visible, plano de agua,
- * luz del sol y una figura humana de 1,8 m como referencia de escala.
+ * Ayudas visuales y escena placeholder (Fase 2): plano de agua (hasta el océano de la Fase 4),
+ * rejilla como fondo marino, ejes, caja de la malla visible, luz del sol y una persona de 1,8 m
+ * de pie sobre el agua como referencia de escala.
  */
 export function createHelpers(scene, sun, whale, lodState) {
   const state = {
     grid: true,
-    gridHeight: -3,
+    gridHeight: -30, // fondo marino de referencia
     axes: false,
     box: false,
-    water: false,
+    water: true,
     waterLevel: -0.3, // plano de agua del .blend original (−0,41 m) escalado a 14 m
-    waterOpacity: 0.35,
+    waterOpacity: 0.55,
+    waterColor: '#3f6f8f',
     sunHelper: false,
     human: true,
   };
 
-  const grid = new THREE.GridHelper(80, 80, 0x6b8299, 0x34475a);
+  const grid = new THREE.GridHelper(200, 200, 0x6b8299, 0x4a5a68);
   scene.add(grid);
 
   const axes = new THREE.AxesHelper(3);
@@ -27,21 +29,21 @@ export function createHelpers(scene, sun, whale, lodState) {
   scene.add(box);
 
   const waterMat = new THREE.MeshBasicNodeMaterial({
-    color: 0x1f6fa8, transparent: true, opacity: state.waterOpacity, side: THREE.DoubleSide, depthWrite: false,
+    color: state.waterColor, transparent: true, opacity: state.waterOpacity, side: THREE.DoubleSide, depthWrite: false,
   });
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), waterMat);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), waterMat);
   water.rotation.x = -Math.PI / 2;
   scene.add(water);
 
   const sunHelper = new THREE.DirectionalLightHelper(sun, 3);
   scene.add(sunHelper);
 
-  // referencia de escala: persona de 1,8 m junto a la pectoral
+  // referencia de escala: persona de 1,8 m de pie sobre el agua
   const human = new THREE.Mesh(
     new THREE.CapsuleGeometry(0.22, 1.36, 4, 12),
     new THREE.MeshStandardNodeMaterial({ color: 0xe07a3f, roughness: 0.6 }),
   );
-  human.position.set(5, 0.9 + state.gridHeight, 2);
+  human.position.set(8, 0.9 + state.waterLevel, 4);
   scene.add(human);
 
   const tmpBox = new THREE.Box3();
@@ -54,9 +56,10 @@ export function createHelpers(scene, sun, whale, lodState) {
     water.visible = state.water;
     water.position.y = state.waterLevel;
     waterMat.opacity = state.waterOpacity;
+    waterMat.color.set(state.waterColor);
     sunHelper.visible = state.sunHelper;
     human.visible = state.human;
-    human.position.y = 0.9 + state.gridHeight;
+    human.position.y = 0.9 + state.waterLevel;
   }
   apply();
 

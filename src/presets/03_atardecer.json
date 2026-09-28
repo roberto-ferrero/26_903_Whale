@@ -1,0 +1,18 @@
+{
+  "nombre": "Atardecer",
+  "descripcion": "Sol bajo y cálido, contraluz suave.",
+  "valores": {
+    "luz": {
+      "sunElevation": 6,
+      "sunAzimuth": -70,
+      "sunIntensity": 2.4,
+      "sunColor": "#ffb070",
+      "background": "#c9937a",
+      "exposure": 1.15,
+      "environment": 0.35,
+      "hemiIntensity": 0.35,
+      "fogNear": 60,
+      "fogFar": 320
+    }
+  }
+}

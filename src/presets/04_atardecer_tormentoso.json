@@ -1,0 +1,18 @@
+{
+  "nombre": "Atardecer tormentoso",
+  "descripcion": "Luz baja y apagada, niebla densa.",
+  "valores": {
+    "luz": {
+      "sunElevation": 4,
+      "sunAzimuth": -60,
+      "sunIntensity": 1.0,
+      "sunColor": "#ff9a6a",
+      "background": "#5a5f68",
+      "exposure": 1.2,
+      "environment": 0.4,
+      "hemiIntensity": 0.45,
+      "fogNear": 20,
+      "fogFar": 180
+    }
+  }
+}

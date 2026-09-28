@@ -1,0 +1,18 @@
+{
+  "nombre": "Inspección del modelo",
+  "descripcion": "Ballena en reposo para revisar clips, materiales y esqueleto (máquina de estados desactivada).",
+  "valores": {
+    "ballena": {
+      "enabled": false
+    },
+    "camara": {
+      "mode": "Órbita libre"
+    },
+    "ayudas": {
+      "water": false
+    },
+    "luz": {
+      "fog": false
+    }
+  }
+}

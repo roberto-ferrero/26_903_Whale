@@ -7,9 +7,9 @@ const TRAIL_MAX = 2000;
  * Punto de anclaje de la ballena: por defecto el hueso `Root` (centro de masas, creado
  * en la Fase 1.6), desde donde se moverá y girará la ballena entera en la 1.7.
  * Ayudas: marcador con ejes, estela de la trayectoria, línea vertical hasta el agua,
- * lectura de posición/altura y cámara que lo sigue.
+ * lectura de posición/altura. (El seguimiento de cámara está en core/cameras.js.)
  */
-export function createAnchor(scene, whale, camera, controls, waterState) {
+export function createAnchor(scene, whale, waterState) {
   const bones = whale.skinned[0].skeleton.bones;
   const byName = Object.fromEntries(bones.map((b) => [b.name, b]));
   // Root = centro de masas; MasterBone = raíz de la animación original (sube en los saltos)
@@ -24,7 +24,6 @@ export function createAnchor(scene, whale, camera, controls, waterState) {
     trail: false,
     trailLength: 600,
     dropLine: true,
-    follow: false,
     // lecturas
     position: '',
     heightOverWater: '',
@@ -62,8 +61,6 @@ export function createAnchor(scene, whale, camera, controls, waterState) {
   const pos = new THREE.Vector3();
   const quat = new THREE.Quaternion();
   const scl = new THREE.Vector3();
-  const lastPos = new THREE.Vector3();
-  let hasLast = false;
 
   function apply() {
     marker.visible = axes.visible = state.marker;
@@ -110,21 +107,10 @@ export function createAnchor(scene, whale, camera, controls, waterState) {
         drop.computeLineDistances();
       }
 
-      // la cámara acompaña al punto de anclaje manteniendo su posición relativa
-      if (state.follow && hasLast) {
-        const delta = pos.clone().sub(lastPos);
-        camera.position.add(delta);
-        controls.target.add(delta);
-      }
-      lastPos.copy(pos);
-      hasLast = true;
-
       state.position = `${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)} m`;
       state.heightOverWater = `${(pos.y - water).toFixed(2)} m`;
     },
-    focus() {
-      controls.target.copy(pos);
-      controls.update();
-    },
+    /** Posición actual del punto de anclaje (para centrar la cámara). */
+    getPosition(out) { return out.copy(pos); },
   };
 }

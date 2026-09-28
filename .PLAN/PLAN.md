@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.18 · 28/09/2026
+Versión 0.19 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -136,15 +136,20 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 2: Base del proyecto Three.js
+## [x] Fase 2: Base del proyecto Three.js
 
-- [ ] **Fase 2.1** Renderer, gestión de color, *tone mapping* (AgX o ACES), bucle con `clock` y reloj de simulación pausable y con control de velocidad (cámara lenta).
-- [ ] **Fase 2.2** Sistema de parámetros: GUI por módulo, presets en JSON (por ejemplo "Mediodía despejado", "Atardecer tormentoso") y guardado en URL.
-- [ ] **Fase 2.3** Cámaras: orbital libre, seguimiento de la ballena y cámara cinemática por raíles. Transición suave entre modos.
-- [ ] **Fase 2.4** Carga de la ballena, `AnimationMixer`, máquina de estados (nadar → preparar → saltar → caer → nadar) y lectura de eventos de la animación.
-- [ ] **Fase 2.5** Herramientas de depuración: stats, *wireframe*, visualizar buffers y timeline de la secuencia.
+- [x] **Fase 2.1** Renderer, gestión de color, *tone mapping* (AgX o ACES), bucle con `clock` y reloj de simulación pausable y con control de velocidad (cámara lenta).
+  - Hecho: `core/clock.js` (pausa, velocidad 0-3, avance fotograma a fotograma; todo lo simulado usa su `dt`) y `core/lighting.js` (tone mapping AgX/ACES/Neutral, exposición, sol, entorno, fondo y niebla).
+- [x] **Fase 2.2** Sistema de parámetros: GUI por módulo, presets en JSON (por ejemplo "Mediodía despejado", "Atardecer tormentoso") y guardado en URL.
+  - Hecho: `core/params.js` con 8 módulos registrados, 6 presets en `src/presets/`, URL con solo los cambios, copiar enlace, exportar preset y restablecer.
+- [x] **Fase 2.3** Cámaras: orbital libre, seguimiento de la ballena y cámara cinemática por raíles. Transición suave entre modos.
+  - Hecho: `core/cameras.js`: órbita (7 vistas), seguimiento suavizado y raíles barco, aérea, ras de agua y bajo el agua, más un director que corta según el estado; transiciones *smoothstep* o cortes secos.
+- [x] **Fase 2.4** Carga de la ballena, `AnimationMixer`, máquina de estados (nadar → preparar → saltar → caer → nadar) y lectura de eventos de la animación.
+  - Hecho: `whale/whaleStates.js` + `whale/breachPlanner.js`: nado libre con deriva y regreso al centro; salto (J o automático) planificado desde la posición y el rumbo actuales; eventos `state`, `surface_exit`, `apex` e `impact`; modo libre para revisar clips.
+- [x] **Fase 2.5** Herramientas de depuración: stats, *wireframe*, visualizar buffers y timeline de la secuencia.
+  - Hecho: `core/debug.js`: vistas albedo, normales, profundidad, AO y rugosidad; línea de tiempo del salto con clic para ir a un instante; estadísticas ampliadas y atajos de teclado.
 
-**Hecho cuando:** la ballena nada y salta en una escena gris placeholder con la GUI funcionando.
+**Hecho cuando:** la ballena nada y salta en una escena gris placeholder con la GUI funcionando. ✔ Cumplido el 28/09/2026. Detalle: [docs/fase_2_base.md](docs/fase_2_base.md).
 
 ---
 

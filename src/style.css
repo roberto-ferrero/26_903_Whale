@@ -58,3 +58,62 @@ canvas {
   font: 10px/1.3 ui-monospace, monospace;
   white-space: nowrap;
 }
+
+.timeline {
+  position: fixed;
+  left: 12px;
+  right: 260px;
+  bottom: 10px;
+  height: 34px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tl-track {
+  position: absolute;
+  inset: 0 0 14px 0;
+  background: rgb(0 0 0 / 45%);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tl-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  opacity: 0.75;
+  color: #111;
+  font: 10px/20px ui-monospace, monospace;
+  padding-left: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.tl-event {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: #fff;
+}
+
+.tl-cursor {
+  position: absolute;
+  top: -3px;
+  bottom: 11px;
+  width: 2px;
+  background: #ff5252;
+  box-shadow: 0 0 4px #ff5252;
+}
+
+.tl-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  color: #d8e6f3;
+  font: 11px/14px ui-monospace, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-shadow: 0 1px 2px #000;
+}
