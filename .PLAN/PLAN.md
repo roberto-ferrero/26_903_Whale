@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.15 · 28/09/2026
+Versión 0.16 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -109,16 +109,24 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
   - Cabeza y mandíbula.
   - Pectorales.
   - Caudal.
-- [ ] **Fase 1.7 Animaciones.** Reutilizar las del modelo y crear las que falten:
+- [x] **Fase 1.7 Animaciones.** Reutilizar las del modelo y crear las que falten:
   - `swim_idle`, `swim_fast` y `breach`.
   - `dive` y `pec_slap` (opcionales).
   - Eventos `surface_exit`, `apex` e `impact`.
+  - Resultado (28/09/2026):
+    - Clips nuevos en Blender: `swim_idle` (Swim1), `swim_fast` (Swim2 ×1,53 y amplitud ×1,25) y `breach_body` (cuerpo de JumpRight sin el movimiento global de MasterBone; eventos en `extras`).
+    - **Trayectoria del salto por código en Three.js** (decisión de Roberto) sobre el hueso `Root`: nado profundo → ascenso → parábola balística con giro de 160° → caída de espalda → recuperación, con 12 parámetros en el panel.
+    - Eventos `surface_exit`, `apex` e `impact`.
+    - Validado: en el ápice, entre el 72 % y el 79 % del cuerpo fuera del agua (referencias: 60-80 %) y 1,65 s en el aire.
+    - `dive` y `pec_slap` (opcionales) quedan pendientes.
+  - Detalle: [docs/fase_1_7_animaciones.md](docs/fase_1_7_animaciones.md).
 - [~] **Fase 1.8 Exportación y validación.** GLB (meshopt + KTX2) en `_Blender\Claude modelo` y copia a `public/models`; validación en un visor Three.js.
   - Hecho (28/09/2026):
     - Exportación **preliminar**, con PNG y sin compresión (18,9 MB): 3 LODs, 1 esqueleto de 47 huesos, 7 clips, `alphaMode: MASK` en las "barbs" y `wet_map` en `extras`.
     - Visor Three.js (WebGPU) con ayudas y panel lil-gui: clips, LOD, mojado, iluminación, cámara.
     - Detalle: [docs/visor_modelo.md](docs/visor_modelo.md).
-  - Pendiente: KTX2 y compresión de malla, eventos de animación y validación final.
+    - Re-exportado tras la 1.7 (19,1 MB, 10 clips, eventos de `breach_body` en `extras`).
+  - Pendiente: KTX2 y compresión de malla, y validación final.
 - [ ] **Fase 1.9 (opcional) Refinado.** Esculpido y texturas.
 
 **Hecho cuando:** el GLB carga en Three.js y reproduce los clips con *crossfade* sin artefactos en la piel.

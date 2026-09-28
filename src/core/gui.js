@@ -14,7 +14,7 @@ const CAMERA_VIEWS = {
 };
 
 /** Panel lil-gui con todas las opciones del visor. */
-export function createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor, stats }) {
+export function createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor, breach, stats }) {
   const { renderer, scene, camera, controls, sun, sunParams, updateSun, hemi } = viewer;
   const gui = new GUI({ title: 'Ballena jorobada · visor' });
 
@@ -31,6 +31,50 @@ export function createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor,
   fAnim.controllers[0].onFinishChange(updateTimeRange);
   updateTimeRange();
   fAnim.add({ rest: () => anim.restPose() }, 'rest').name('Pose de reposo');
+
+  // ------------------------------------------------------------------ salto (secuencia de la Fase 1.7)
+  const fBreach = gui.addFolder('Salto (secuencia)');
+  const br = breach.state;
+  const bp = breach.params;
+  const breachActions = {
+    iniciar() {
+      helpers.state.water = true;
+      helpers.apply();
+      breach.start();
+    },
+    detener() { breach.stop(); },
+    relanzar() { breach.restart(); },
+    vista() {
+      camera.position.set(34, 3, 2);
+      controls.target.set(0, 1.5, 2);
+      controls.update();
+    },
+  };
+  fBreach.add(breachActions, 'iniciar').name('▶ Iniciar secuencia');
+  fBreach.add(breachActions, 'detener').name('■ Detener');
+  fBreach.add(breachActions, 'relanzar').name('↻ Relanzar ciclo');
+  fBreach.add(breachActions, 'vista').name('Vista lateral del salto');
+  fBreach.add(bp, 'repeat').name('Repetir').listen();
+  fBreach.add(br, 'showPath').name('Ver trayectoria').onChange(breach.applyVisibility);
+  fBreach.add(br, 'phase').name('Fase').listen().disable();
+  fBreach.add(br, 'lastEvent').name('Último evento').listen().disable();
+  fBreach.add(br, 'airTime').name('Tiempo en el aire').listen().disable();
+  fBreach.add(br, 'apexHeight').name('Altura máxima').listen().disable();
+  const fTraj = fBreach.addFolder('Trayectoria');
+  const rebuild = () => breach.rebuild();
+  fTraj.add(bp, 'depth', 3, 40, 0.5).name('Profundidad de nado (m)').onChange(rebuild);
+  fTraj.add(bp, 'swimSpeed', 0.5, 5, 0.1).name('Velocidad de nado (m/s)').onChange(rebuild);
+  fTraj.add(bp, 'swimTime', 0, 15, 0.5).name('Nado previo (s)').onChange(rebuild);
+  fTraj.add(bp, 'ascentTime', 1.5, 12, 0.1).name('Duración ascenso (s)').onChange(rebuild);
+  fTraj.add(bp, 'exitSpeed', 3, 14, 0.1).name('Velocidad de salida (m/s)').onChange(rebuild);
+  fTraj.add(bp, 'exitAngle', 30, 89, 1).name('Ángulo de salida (°)').onChange(rebuild);
+  fTraj.add(bp, 'roll', 0, 270, 5).name('Giro sobre su eje (°)').onChange(rebuild);
+  fTraj.add(bp, 'rollSide', ['Derecha', 'Izquierda']).name('Sentido del giro').onChange(rebuild);
+  fTraj.add(bp, 'landingPitch', -60, 30, 1).name('Inclinación al caer (°)').onChange(rebuild);
+  fTraj.add(bp, 'submergeTime', 0.8, 6, 0.1).name('Duración inmersión (s)').onChange(rebuild);
+  fTraj.add(bp, 'submergeDepth', 1, 15, 0.5).name('Profundidad tras impacto (m)').onChange(rebuild);
+  fTraj.add(bp, 'recoverTime', 1, 15, 0.5).name('Duración recuperación (s)').onChange(rebuild);
+  fTraj.close();
 
   // ------------------------------------------------------------------ modelo
   const fModel = gui.addFolder('Modelo');
