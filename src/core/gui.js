@@ -6,7 +6,7 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -94,8 +94,55 @@ export function createGui(m) {
   fModel.add(L, 'wireframe').name('Alambre').onChange(look.apply);
   fModel.add(L, 'barbs').name('Pelos (barbs)').onChange(look.apply);
 
+  // ------------------------------------------------------------------ cielo (Fase 3)
+  const fSky = gui.addFolder('Cielo · fecha, hora y lugar');
+  const sk3 = sky.state;
+  fSky.add(sk3, 'enabled').name('Cielo físico').onChange(applySky);
+  fSky.add(sk3, 'place', sky.places).name('Lugar').listen().onChange(applySky);
+  fSky.add(sk3, 'lat', -90, 90, 0.01).name('Latitud (°)').listen().onChange(() => { sk3.place = 'Personalizado'; applySky(); });
+  fSky.add(sk3, 'lon', -180, 180, 0.01).name('Longitud (°)').listen().onChange(() => { sk3.place = 'Personalizado'; applySky(); });
+  fSky.add(sk3, 'tz', -12, 14, 0.5).name('Zona horaria (UTC±h)').listen().onChange(() => { sk3.place = 'Personalizado'; applySky(); });
+  fSky.add(sk3, 'date').name('Fecha (AAAA-MM-DD)').listen().onFinishChange(applySky);
+  fSky.add(sk3, 'hour', 0, 23.99, 0.01).name('Hora local').listen();
+  fSky.add(sk3, 'animate').name('Avanzar la hora');
+  fSky.add(sk3, 'timeSpeed', 1, 3600, 1).name('Velocidad (× tiempo real)');
+  fSky.add(sk3, 'localTime').name('Fecha y hora').listen().disable();
+  fSky.add(sk3, 'sunAltAz').name('Sol').listen().disable();
+  fSky.add(sk3, 'sunTimes').name('Salida / puesta').listen().disable();
+  fSky.add(sk3, 'moonInfo').name('Luna').listen().disable();
+  const fAtm = gui.addFolder('Cielo · atmósfera y luz');
+  fAtm.add(sk3, 'turbidity', 1, 20, 0.1).name('Turbidez (bruma)');
+  fAtm.add(sk3, 'rayleigh', 0, 4, 0.01).name('Rayleigh (azul)');
+  fAtm.add(sk3, 'mieCoefficient', 0, 0.1, 0.001).name('Mie (halo)');
+  fAtm.add(sk3, 'mieDirectionalG', 0, 0.999, 0.001).name('Mie · direccionalidad');
+  fAtm.add(sk3, 'skyBrightness', 0.1, 4, 0.05).name('Brillo del cielo');
+  fAtm.add(sk3, 'sunStrength', 0, 10, 0.05).name('Fuerza del sol');
+  fAtm.add(sk3, 'ambientStrength', 0, 3, 0.05).name('Luz ambiente');
+  fAtm.add(sk3, 'moonStrength', 0, 2, 0.05).name('Luz de luna');
+  fAtm.add(sk3, 'stars', 0, 3, 0.05).name('Estrellas');
+  fAtm.add(sk3, 'cloudLight', 0.1, 4, 0.05).name('Brillo de las nubes');
+  fAtm.add(sk3, 'fogDensity', 0, 0.02, 0.0001).name('Bruma (perspectiva aérea)');
+  fAtm.onFinishChange(() => sky.invalidateEnv()); // rehacer el entorno al soltar el control
+  const fClouds = gui.addFolder('Nubes volumétricas');
+  const cl = clouds.state;
+  fClouds.add(cl, 'enabled').name('Nubes').onChange(applyClouds);
+  fClouds.add(cl, 'coverage', 0, 1, 0.01).name('Cobertura').onChange(applyClouds);
+  fClouds.add(cl, 'density', 0.002, 0.15, 0.001).name('Densidad').onChange(applyClouds);
+  fClouds.add(cl, 'type', 0, 1, 0.01).name('Tipo (cúmulo - estrato)').onChange(applyClouds);
+  fClouds.add(cl, 'base', 200, 6000, 50).name('Altitud de la base (m)').onChange(applyClouds);
+  fClouds.add(cl, 'thickness', 100, 4000, 50).name('Grosor (m)').onChange(applyClouds);
+  fClouds.add(cl, 'scale', 0.2, 4, 0.05).name('Tamaño de las formaciones').onChange(applyClouds);
+  fClouds.add(cl, 'windSpeed', 0, 60, 0.5).name('Viento (m/s)');
+  fClouds.add(cl, 'windDirection', 0, 360, 1).name('Viento hacia (° desde N)');
+  fClouds.add(cl, 'shadows', 0, 1, 0.01).name('Sombras sobre el mar').onChange(applyClouds);
+  fClouds.add(cl, 'resolution', 0.25, 1, 0.05).name('Resolución (fracción)').onChange(applyClouds);
+  fClouds.add(cl, 'temporal').name('Acumulación temporal').onChange(applyClouds);
+  fClouds.add(cl, 'steps', 8, 128, 1).name('Calidad (pasos)').onChange(applyClouds);
+  fClouds.add(cl, 'lightSteps', 1, 12, 1).name('Pasos de luz').onChange(applyClouds);
+  fClouds.add(cl, 'maxDistance', 2000, 80000, 500).name('Distancia máx. (m)').onChange(applyClouds);
+
   // ------------------------------------------------------------------ iluminación y ambiente
-  const fLight = gui.addFolder('Iluminación y ambiente');
+  const fLight = gui.addFolder('Iluminación (sin cielo: manual)');
   const li = lighting.state;
   fLight.add(li, 'toneMapping', lighting.toneMappings).name('Tone mapping').onChange(lighting.apply);
   fLight.add(li, 'exposure', 0.1, 3, 0.01).name('Exposición').onChange(lighting.apply);
@@ -205,6 +252,6 @@ export function createGui(m) {
   gui.onFinishChange(() => { if (presetState.autoURL) params.writeURL(); });
   params.onChange(() => { gui.controllersRecursive().forEach((ctrl) => ctrl.updateDisplay()); updateTimeRange(); });
 
-  for (const f of [fAnim, fModel, fLight, fHelp, fSkel, fAnchor, fDebug]) f.close();
+  for (const f of [fAnim, fModel, fAtm, fClouds, fLight, fHelp, fSkel, fAnchor, fDebug]) f.close();
   return gui;
 }

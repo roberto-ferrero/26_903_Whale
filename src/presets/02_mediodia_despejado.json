@@ -1,18 +1,12 @@
 {
   "nombre": "Mediodía despejado",
-  "descripcion": "Sol alto y cielo claro (provisional hasta el cielo físico de la Fase 3).",
+  "descripcion": "Tonga a las 12:20, sol alto y pocos cúmulos.",
   "valores": {
-    "luz": {
-      "sunElevation": 68,
-      "sunAzimuth": 20,
-      "sunIntensity": 3.2,
-      "sunColor": "#fffaf0",
-      "background": "#9fc3e6",
-      "exposure": 1.0,
-      "environment": 0.75,
-      "hemiIntensity": 0.7,
-      "fogNear": 150,
-      "fogFar": 700
+    "cielo": {
+      "hour": 12.33
+    },
+    "nubes": {
+      "coverage": 0.25
     }
   }
 }

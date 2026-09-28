@@ -1,5 +1,12 @@
 {
-  "nombre": "Escena gris (por defecto)",
-  "descripcion": "Escena placeholder de la Fase 2: fondo gris, niebla, plano de agua y ballena nadando y saltando.",
-  "valores": {}
+  "nombre": "Escena gris (placeholder)",
+  "descripcion": "Escena placeholder de la Fase 2: sin cielo físico ni nubes, fondo gris y niebla.",
+  "valores": {
+    "cielo": {
+      "enabled": false
+    },
+    "nubes": {
+      "enabled": false
+    }
+  }
 }

@@ -1,0 +1,11 @@
+{
+  "nombre": "Día acelerado",
+  "descripcion": "La hora avanza 15 minutos por segundo desde antes del amanecer: cielo, nubes, luz y reflejos cambian a la vez.",
+  "valores": {
+    "cielo": {
+      "hour": 5.5,
+      "animate": true,
+      "timeSpeed": 900
+    }
+  }
+}

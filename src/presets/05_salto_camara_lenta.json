@@ -1,6 +1,6 @@
 {
   "nombre": "Salto a cámara lenta",
-  "descripcion": "Simulación al 35 %, cámara cinemática desde el barco y saltos seguidos.",
+  "descripcion": "Simulación al 35 %, cámara cinemática desde el barco y saltos seguidos, por la mañana.",
   "valores": {
     "tiempo": {
       "timeScale": 0.35
@@ -11,6 +11,9 @@
     },
     "ballena": {
       "autoInterval": 3
+    },
+    "cielo": {
+      "hour": 9
     }
   }
 }

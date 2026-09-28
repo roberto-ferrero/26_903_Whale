@@ -16,7 +16,8 @@ export const TONE_MAPPINGS = {
  * Unidades en metros; eje Y arriba; la ballena mira hacia +Z.
  */
 export async function createViewer(container) {
-  const renderer = new THREE.WebGPURenderer({ antialias: true });
+  // en desarrollo se miden los tiempos de GPU (timestamp queries) para el panel de depuración
+  const renderer = new THREE.WebGPURenderer({ antialias: true, trackTimestamp: import.meta.env.DEV });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.AgXToneMapping;

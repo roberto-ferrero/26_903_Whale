@@ -1,6 +1,6 @@
 {
   "nombre": "Inspección del modelo",
-  "descripcion": "Ballena en reposo para revisar clips, materiales y esqueleto (máquina de estados desactivada).",
+  "descripcion": "Ballena en reposo para revisar clips, materiales y esqueleto; escena gris sin agua ni niebla.",
   "valores": {
     "ballena": {
       "enabled": false
@@ -13,6 +13,12 @@
     },
     "luz": {
       "fog": false
+    },
+    "cielo": {
+      "enabled": false
+    },
+    "nubes": {
+      "enabled": false
     }
   }
 }

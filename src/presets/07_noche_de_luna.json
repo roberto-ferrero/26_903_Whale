@@ -1,0 +1,12 @@
+{
+  "nombre": "Noche de luna",
+  "descripcion": "Luna casi llena, estrellas y nubes iluminadas por la luna.",
+  "valores": {
+    "cielo": {
+      "hour": 21.5
+    },
+    "nubes": {
+      "coverage": 0.3
+    }
+  }
+}

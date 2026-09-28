@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.19 · 28/09/2026
+Versión 0.20 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -153,7 +153,9 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 3: Cielo fotorrealista
+## [~] Fase 3: Cielo fotorrealista
+
+> Estado (28/09/2026, trabajo en curso, sin documentación detallada aún): `src/sky/astro.js` (sol, luna y fase, validado), `src/sky/sky.js` (Preetham SkyMesh, estrellas, luna, luz del sol por transmitancia, luz de luna, niebla, entorno PMREM regenerado), `src/sky/clouds.js` (nubes volumétricas con texturas de ruido precalculadas por `tools/gen-cloud-noise.mjs`, a ½ resolución con acumulación temporal: 1,8 ms de GPU a 720p frente a 113 ms en la primera versión), sombras de nubes sobre el agua y 8 presets. Pendiente: LUT Hillaire/Bruneton (3.2), reproyección temporal completa de las nubes, doc `docs/fase_3_cielo.md` y validación visual final.
 
 - [ ] **Fase 3.1 Posición del sol (y luna) por fecha, hora, latitud y longitud.** Algoritmo NOAA/SunCalc. Parámetros: fecha, hora, zona horaria, lat/lon y velocidad del tiempo.
 - [ ] **Fase 3.2 Atmósfera física.** Primero el `Sky` de Three.js (Preetham) como prototipo y después dispersión precomputada con LUTs (modelo Hillaire/Bruneton): Rayleigh, Mie, ozono, turbidez. Amaneceres, atardeceres y crepúsculo correctos.

@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { positionWorld, uniform } from 'three/tsl';
 
 /**
  * Ayudas visuales y escena placeholder (Fase 2): plano de agua (hasta el océano de la Fase 4),
@@ -13,8 +14,8 @@ export function createHelpers(scene, sun, whale, lodState) {
     box: false,
     water: true,
     waterLevel: -0.3, // plano de agua del .blend original (−0,41 m) escalado a 14 m
-    waterOpacity: 0.55,
-    waterColor: '#3f6f8f',
+    waterOpacity: 0.9,
+    waterColor: '#1c4a66',
     sunHelper: false,
     human: true,
   };
@@ -28,8 +29,9 @@ export function createHelpers(scene, sun, whale, lodState) {
   const box = new THREE.Box3Helper(new THREE.Box3(), 0xffcc33);
   scene.add(box);
 
-  const waterMat = new THREE.MeshBasicNodeMaterial({
-    color: state.waterColor, transparent: true, opacity: state.waterOpacity, side: THREE.DoubleSide, depthWrite: false,
+  const waterMat = new THREE.MeshStandardNodeMaterial({
+    color: state.waterColor, roughness: 0.18, metalness: 0, transparent: true, opacity: state.waterOpacity,
+    side: THREE.DoubleSide, depthWrite: false,
   });
   const water = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), waterMat);
   water.rotation.x = -Math.PI / 2;
@@ -63,9 +65,15 @@ export function createHelpers(scene, sun, whale, lodState) {
   }
   apply();
 
+  const waterColor = uniform(new THREE.Color(state.waterColor));
   return {
     state,
-    apply,
+    apply() { apply(); waterColor.value.set(state.waterColor); },
+    /** Oscurece el agua con las sombras de las nubes (Fase 3.5); shadowFn(posiciónMundo) → 0-1. */
+    setWaterShadow(shadowFn) {
+      waterMat.colorNode = waterColor.mul(shadowFn(positionWorld));
+      waterMat.needsUpdate = true;
+    },
     update() {
       if (state.sunHelper) sunHelper.update();
       if (state.box) {
