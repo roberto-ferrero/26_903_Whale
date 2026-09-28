@@ -3,7 +3,8 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0b1a2a;
+  background: #1d2b3a;
+  font-family: system-ui, sans-serif;
 }
 
 #app {
@@ -13,4 +14,33 @@ body {
 
 canvas {
   display: block;
+}
+
+.stats {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  padding: 6px 8px;
+  background: rgb(0 0 0 / 55%);
+  color: #d8e6f3;
+  font: 12px/1.45 ui-monospace, monospace;
+  white-space: pre;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.message {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #d8e6f3;
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.message code {
+  color: #9fd0ff;
 }

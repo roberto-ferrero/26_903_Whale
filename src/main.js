@@ -1,62 +1,55 @@
 import './style.css';
 import * as THREE from 'three/webgpu';
-import GUI from 'lil-gui';
+import { createViewer } from './core/viewer.js';
+import { createHelpers } from './core/helpers.js';
+import { createStats } from './core/stats.js';
+import { createGui } from './core/gui.js';
+import { loadWhale, createLodController, createAnimationController } from './whale/whale.js';
+
+const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
+const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.png`;
 
 const container = document.querySelector('#app');
+const message = document.createElement('div');
+message.className = 'message';
+message.textContent = 'Cargando ballena…';
+container.appendChild(message);
 
-const renderer = new THREE.WebGPURenderer({ antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-container.appendChild(renderer.domElement);
+const viewer = await createViewer(container);
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b1a2a);
+let whale;
+try {
+  whale = await loadWhale(MODEL_URL, WET_URL);
+} catch (err) {
+  console.error(err);
+  message.innerHTML = 'No se pudo cargar <code>public/models/whale.glb</code>.<br>'
+    + 'El modelo no se versiona (licencia de CGTrader): expórtalo con '
+    + '<code>_Blender/scripts/export_glb.py</code> y cópialo a <code>public/models/</code> '
+    + 'junto con <code>whale_wet_2k.png</code>.';
+  throw err;
+}
+message.remove();
+viewer.scene.add(whale.root);
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 1.5, 4);
-camera.lookAt(0, 0, 0);
-
-scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x10202a, 1.0));
-const sun = new THREE.DirectionalLight(0xffffff, 2.5);
-sun.position.set(3, 5, 2);
-scene.add(sun);
-
-const material = new THREE.MeshStandardNodeMaterial({ color: 0x2a7fff, roughness: 0.4, metalness: 0.1 });
-const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
-scene.add(cube);
-
-const params = {
-  rotationSpeed: 1.0,
-  color: '#2a7fff',
-  wireframe: false,
-  exposure: 1.0,
-};
-
-const gui = new GUI({ title: 'Fase 0 · Test' });
-gui.add(params, 'rotationSpeed', 0, 5, 0.01).name('Velocidad');
-gui.addColor(params, 'color').name('Color').onChange((v) => material.color.set(v));
-gui.add(params, 'wireframe').name('Wireframe').onChange((v) => (material.wireframe = v));
-gui.add(params, 'exposure', 0.1, 3, 0.01).name('Exposición').onChange((v) => (renderer.toneMappingExposure = v));
+const lod = createLodController(whale);
+const anim = createAnimationController(whale);
+const helpers = createHelpers(viewer.scene, viewer.sun, whale, lod.state);
+const stats = createStats(container, viewer.backend);
+createGui({ viewer, whale, anim, lod, helpers, stats });
 
 const timer = new THREE.Timer();
-
-await renderer.init();
-const backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL2 (fallback)';
-gui.add({ backend }, 'backend').name('Backend').disable();
-console.info(`Renderer backend: ${backend}`);
-
-renderer.setAnimationLoop((time) => {
+viewer.renderer.setAnimationLoop((time) => {
   timer.update(time);
-  const dt = timer.getDelta();
-  cube.rotation.x += dt * params.rotationSpeed * 0.5;
-  cube.rotation.y += dt * params.rotationSpeed;
-  if (window.innerWidth === 0 || window.innerHeight === 0) return; // ventana oculta: evita texturas de tamaño 0
-  renderer.render(scene, camera);
-});
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  const dt = Math.min(timer.getDelta(), 0.1);
+  anim.update(dt);
+  lod.update(viewer.camera);
+  helpers.update();
+  viewer.controls.update(dt);
+  if (!viewer.ensureSize()) return; // ventana oculta: evita texturas de tamaño 0
+  viewer.renderer.render(viewer.scene, viewer.camera);
+  stats.update(
+    viewer.renderer,
+    `LOD${lod.state.active} (${whale.triangles[lod.state.active].toLocaleString('es-ES')} tris, ${lod.state.distance.toFixed(0)} m)`
+      + ` · ${anim.state.clip} ${anim.state.time.toFixed(2)} / ${anim.state.duration.toFixed(2)} s`,
+  );
 });

@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.13 · 28/09/2026
+Versión 0.14 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -108,7 +108,12 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
   - `swim_idle`, `swim_fast` y `breach`.
   - `dive` y `pec_slap` (opcionales).
   - Eventos `surface_exit`, `apex` e `impact`.
-- [ ] **Fase 1.8 Exportación y validación.** GLB (meshopt + KTX2) en `_Blender\Claude modelo` y copia a `public/models`; validación en un visor Three.js.
+- [~] **Fase 1.8 Exportación y validación.** GLB (meshopt + KTX2) en `_Blender\Claude modelo` y copia a `public/models`; validación en un visor Three.js.
+  - Hecho (28/09/2026):
+    - Exportación **preliminar**, con PNG y sin compresión (18,9 MB): 3 LODs, 1 esqueleto de 47 huesos, 7 clips, `alphaMode: MASK` en las "barbs" y `wet_map` en `extras`.
+    - Visor Three.js (WebGPU) con ayudas y panel lil-gui: clips, LOD, mojado, iluminación, cámara.
+    - Detalle: [docs/visor_modelo.md](docs/visor_modelo.md).
+  - Pendiente: KTX2 y compresión de malla, eventos de animación y validación final.
 - [ ] **Fase 1.9 (opcional) Refinado.** Esculpido y texturas.
 
 **Hecho cuando:** el GLB carga en Three.js y reproduce los clips con *crossfade* sin artefactos en la piel.
