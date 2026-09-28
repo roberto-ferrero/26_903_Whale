@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "validate:model": "node tools/validate-model.mjs",
-    "pack:model": "node tools/pack-model.mjs"
+    "pack:model": "node tools/pack-model.mjs",
+    "gen:clouds": "node tools/gen-cloud-noise.mjs"
   },
   "devDependencies": {
     "gltf-validator": "^2.0.0-dev.3.10",

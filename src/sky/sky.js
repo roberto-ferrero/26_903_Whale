@@ -3,9 +3,12 @@ import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
 import {
   abs, cameraPosition, dot, float, max, mix, mx_noise_float, normalWorld, positionWorld, smoothstep, uniform, vec3,
 } from 'three/tsl';
+import { createAtmosphere } from './atmosphere.js';
 import { directionFromAltAz, equatorialToWorld, moonIllumination, moonPosition, sunPosition, sunriseSunset } from './astro.js';
 
 // lugares con ballenas jorobadas (temporadas de cría o alimentación)
+export const SKY_MODELS = ['Físico (Hillaire)', 'Preetham'];
+
 export const PLACES = {
   "Tonga (Vava'u)": { lat: -18.65, lon: -173.98, tz: 13 },
   'Hawái (Maui)': { lat: 20.8, lon: -156.4, tz: -10 },
@@ -34,7 +37,7 @@ export function sunTransmittance(altDeg, turbidity, out = new THREE.Color()) {
 
 /**
  * Cielo (Fases 3.1-3.3 y 3.5): fecha, hora y lugar → posición del sol y de la luna;
- * atmósfera Preetham (SkyMesh de Three.js para WebGPU); estrellas orientadas con el tiempo
+ * atmósfera física (atmosphere.js, Hillaire) o Preetham (SkyMesh de Three.js); estrellas orientadas con el tiempo
  * sidéreo; luna con su fase; y la luz de la escena derivada del cielo (color y fuerza del sol,
  * luz de luna, luz ambiente, niebla y mapa de entorno PMREM regenerado al cambiar la hora).
  */
@@ -43,6 +46,9 @@ export function createSky(viewer, extraSkyObjects = []) {
 
   const state = {
     enabled: true,
+    model: 'Físico (Hillaire)',
+    ozone: 1,
+    multiScattering: 1,
     place: "Tonga (Vava'u)",
     lat: -18.65,
     lon: -173.98,
@@ -78,6 +84,9 @@ export function createSky(viewer, extraSkyObjects = []) {
   sky.material.colorNode = sky.material.colorNode.mul(skyGain);
   sky.material.fog = false;
   scene.add(sky);
+  const atm = createAtmosphere(renderer);
+  scene.add(atm.dome);
+  let atmKey = '';
 
   // ------------------------------------------------------------------ estrellas (procedurales, en coordenadas ecuatoriales)
   const STARS = 6000;
@@ -133,6 +142,7 @@ export function createSky(viewer, extraSkyObjects = []) {
   envSky.material.colorNode = envSky.material.colorNode.mul(envGain);
   envSky.showSunDisc.value = 0;
   envScene.add(envSky);
+  envScene.add(atm.envDome);
   for (const o of extraSkyObjects) envScene.add(o);
   let envRT = null;
   let lastEnvSun = new THREE.Vector3(0, -2, 0);
@@ -192,6 +202,20 @@ export function createSky(viewer, extraSkyObjects = []) {
     skyGain.value = state.skyBrightness;
     envGain.value = state.skyBrightness;
     sky.position.copy(camera.position);
+    const physical = state.model === SKY_MODELS[0];
+    if (physical) {
+      // parámetros compartidos: rayleigh → β_R, turbidez → β_M, direccionalidad Mie → g
+      const key = [state.rayleigh, state.turbidity, state.mieDirectionalG, state.ozone, state.multiScattering].join('|');
+      if (key !== atmKey) {
+        Object.assign(atm.params, {
+          rayleighScale: state.rayleigh, mieScale: state.turbidity / 2.5, miePhaseG: state.mieDirectionalG,
+          ozone: state.ozone, multiScattering: state.multiScattering,
+        });
+        atm.apply();
+        atmKey = key;
+      }
+      atm.dome.position.copy(camera.position);
+    }
 
     // noche: estrellas y luna
     const night = 1 - smooth(-12, 0, s.altitude); // 1 = noche cerrada (sol < −12°)
@@ -210,8 +234,12 @@ export function createSky(viewer, extraSkyObjects = []) {
     moon.visible = state.enabled && m.altitude > -2;
 
     // luz del sol: color por transmitancia y fuerza por altura (se apaga bajo el horizonte)
-    sunTransmittance(Math.max(s.altitude, -1), state.turbidity, sunColor);
+    if (physical) atm.transmittance(Math.max(s.altitude, -1), sunColor);
+    else sunTransmittance(Math.max(s.altitude, -1), state.turbidity, sunColor);
     const sunUp = smooth(-1.5, 4, s.altitude);
+    if (physical && state.enabled && atm.update(sunDir, state.skyBrightness, sunColor)) {
+      lastEnvSun.set(0, -2, 0); // LUT nueva: rehacer también el entorno
+    }
     if (s.altitude > -4 || m.altitude < 0) {
       light.dir.copy(sunDir);
       light.sunColor.copy(sunColor);
@@ -242,9 +270,12 @@ export function createSky(viewer, extraSkyObjects = []) {
       scene.fog.color.copy(tmpColor);
       scene.fog.density = state.fogDensity * (0.6 + 0.4 * state.turbidity / 3);
       scene.background = null;
-      scene.environmentIntensity = 0.2 + 0.45 * info.dayFactor;
+      // el cielo físico ya tiene radiancia a escala del sol (irradiancia del cielo ≈ 20 % de la del sol):
+      // su mapa de entorno se usa tal cual; Preetham es unas 8 veces más brillante y se compensa
+      scene.environmentIntensity = physical ? 1 : 0.2 + 0.45 * info.dayFactor;
     }
-    sky.visible = state.enabled;
+    sky.visible = envSky.visible = state.enabled && !physical;
+    atm.dome.visible = atm.envDome.visible = state.enabled && physical;
     moonLight.visible = state.enabled;
 
     // entorno: se regenera si el sol se ha movido o cada cierto tiempo si hay animación
@@ -293,6 +324,8 @@ export function createSky(viewer, extraSkyObjects = []) {
     state,
     info,
     light,
+    models: SKY_MODELS,
+    atmosphere: atm,
     sunDir,
     /** Fuerza regenerar el mapa de entorno (p. ej. tras cambiar las nubes). */
     invalidateEnv() { lastEnvSun.set(0, -2, 0); },

@@ -111,7 +111,10 @@ export function createGui(m) {
   fSky.add(sk3, 'sunTimes').name('Salida / puesta').listen().disable();
   fSky.add(sk3, 'moonInfo').name('Luna').listen().disable();
   const fAtm = gui.addFolder('Cielo · atmósfera y luz');
+  fAtm.add(sk3, 'model', sky.models).name('Modelo de cielo').onChange(applySky);
   fAtm.add(sk3, 'turbidity', 1, 20, 0.1).name('Turbidez (bruma)');
+  fAtm.add(sk3, 'ozone', 0, 3, 0.05).name('Ozono (solo físico)');
+  fAtm.add(sk3, 'multiScattering', 0, 3, 0.05).name('Dispersión múltiple (físico)');
   fAtm.add(sk3, 'rayleigh', 0, 4, 0.01).name('Rayleigh (azul)');
   fAtm.add(sk3, 'mieCoefficient', 0, 0.1, 0.001).name('Mie (halo)');
   fAtm.add(sk3, 'mieDirectionalG', 0, 0.999, 0.001).name('Mie · direccionalidad');

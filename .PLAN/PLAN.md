@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.20 · 28/09/2026
+Versión 0.21 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -153,17 +153,20 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [~] Fase 3: Cielo fotorrealista
+## [x] Fase 3: Cielo fotorrealista
 
-> Estado (28/09/2026, trabajo en curso, sin documentación detallada aún): `src/sky/astro.js` (sol, luna y fase, validado), `src/sky/sky.js` (Preetham SkyMesh, estrellas, luna, luz del sol por transmitancia, luz de luna, niebla, entorno PMREM regenerado), `src/sky/clouds.js` (nubes volumétricas con texturas de ruido precalculadas por `tools/gen-cloud-noise.mjs`, a ½ resolución con acumulación temporal: 1,8 ms de GPU a 720p frente a 113 ms en la primera versión), sombras de nubes sobre el agua y 8 presets. Pendiente: LUT Hillaire/Bruneton (3.2), reproyección temporal completa de las nubes, doc `docs/fase_3_cielo.md` y validación visual final.
+- [x] **Fase 3.1 Posición del sol (y luna) por fecha, hora, latitud y longitud.** Algoritmo NOAA/SunCalc. Parámetros: fecha, hora, zona horaria, lat/lon y velocidad del tiempo.
+  - Hecho: `sky/astro.js`: sol NOAA y luna Meeus con fase; 6 lugares con ballenas jorobadas; validado con los solsticios en Madrid (73,02° y 26,14°, exactos) y con las fases de la luna de sept./oct. de 2026.
+- [x] **Fase 3.2 Atmósfera física.** Primero el `Sky` de Three.js (Preetham) como prototipo y después dispersión precomputada con LUTs (modelo Hillaire/Bruneton): Rayleigh, Mie, ozono, turbidez. Amaneceres, atardeceres y crepúsculo correctos.
+  - Hecho: `sky/atmosphere.js`: LUT *sky-view* de Hillaire en la GPU (Rayleigh, Mie, ozono, dispersión múltiple aproximada, sombra del planeta), recalculada solo cuando se mueve el sol. Es el modelo por defecto; Preetham se puede elegir en la GUI.
+- [x] **Fase 3.3 Noche.** Estrellas, luna con fase según la fecha y brillo del cielo nocturno.
+  - Hecho: 6000 estrellas que giran con el tiempo sidéreo, disco lunar con su fase y luz de luna.
+- [x] **Fase 3.4 Nubes volumétricas.** *Raymarching* con ruido Perlin-Worley 3D y mapa de clima 2D. Parámetros: cobertura, densidad, altitud base, grosor, tipo (cúmulo ↔ estrato), viento. Render a media resolución con reproyección temporal para rendimiento.
+  - Hecho: `sky/clouds.js` + `npm run gen:clouds`: octavas de dispersión múltiple, ½ resolución, acumulación temporal con reproyección (error 0,018 frente a 0,146 sin ella). Coste: 1,8 ms de GPU a 720p (antes 113 ms).
+- [x] **Fase 3.5 Iluminación derivada del cielo.** Luz direccional del sol con color atmosférico, *environment map* (PMREM) regenerado al cambiar la hora, sombras de nubes sobre el mar y *aerial perspective* (bruma en el horizonte).
+  - Hecho: sol teñido por la transmitancia y PMREM con cielo y nubes. Se corrigió un fallo de r186: el PMREM no actualiza la proyección de su cámara cúbica (far = 100). Además: sombra de nubes como nodo reutilizable para el océano y niebla que sigue la hora.
 
-- [ ] **Fase 3.1 Posición del sol (y luna) por fecha, hora, latitud y longitud.** Algoritmo NOAA/SunCalc. Parámetros: fecha, hora, zona horaria, lat/lon y velocidad del tiempo.
-- [ ] **Fase 3.2 Atmósfera física.** Primero el `Sky` de Three.js (Preetham) como prototipo y después dispersión precomputada con LUTs (modelo Hillaire/Bruneton): Rayleigh, Mie, ozono, turbidez. Amaneceres, atardeceres y crepúsculo correctos.
-- [ ] **Fase 3.3 Noche.** Estrellas, luna con fase según la fecha y brillo del cielo nocturno.
-- [ ] **Fase 3.4 Nubes volumétricas.** *Raymarching* con ruido Perlin-Worley 3D y mapa de clima 2D. Parámetros: cobertura, densidad, altitud base, grosor, tipo (cúmulo ↔ estrato), viento. Render a media resolución con reproyección temporal para rendimiento.
-- [ ] **Fase 3.5 Iluminación derivada del cielo.** Luz direccional del sol con color atmosférico, *environment map* (PMREM) regenerado al cambiar la hora, sombras de nubes sobre el mar y *aerial perspective* (bruma en el horizonte).
-
-**Hecho cuando:** mover la hora del día cambia cielo, nubes, luz y reflejos de forma coherente.
+**Hecho cuando:** mover la hora del día cambia cielo, nubes, luz y reflejos de forma coherente. ✔ Cumplido el 28/09/2026. Detalle y capturas: [docs/fase_3_cielo.md](docs/fase_3_cielo.md).
 
 ---
 
