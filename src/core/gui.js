@@ -6,7 +6,7 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -172,6 +172,11 @@ export function createGui(m) {
   fGer.add(oc, 'gSpread', 0, 90, 1).name('Dispersión (°)').onChange(oa);
   fGer.add(oc, 'gSteepness', 0, 1, 0.01).name('Afilado').onChange(oa);
   const fLook = fOcean.addFolder('Aspecto');
+  fLook.add(oc, 'waterType', Object.keys(ocean.waterTypes)).name('Tipo de agua').onChange((t) => {
+    Object.assign(oc, { scatterColor: ocean.waterTypes[t].scatter, clarity: ocean.waterTypes[t].clarity });
+    oa();
+    fLook.controllersRecursive().forEach((c) => c.updateDisplay());
+  });
   fLook.addColor(oc, 'scatterColor').name('Color del agua (dispersión)').onChange(oa);
   fLook.add(oc, 'clarity', 1, 60, 0.5).name('Claridad (m)').onChange(oa);
   fLook.add(oc, 'sss', 0, 4, 0.05).name('Luz a través de las crestas').onChange(oa);
@@ -195,12 +200,30 @@ export function createGui(m) {
   fWater.add(wa, 'sizeScale', 0.3, 3, 0.05).name('Tamaño de las gotas');
   fWater.add(wa, 'brightness', 0.2, 3, 0.05).name('Brillo de las gotas');
   fWater.add(wa, 'curtains', 0, 3, 0.05).name('Cortinas (agua del cuerpo)');
+  fWater.add(wa, 'bubbles', 0, 3, 0.05).name('Burbujas');
   fWater.add(wa, 'waves', 0, 3, 0.05).name('Fuerza de las ondas');
   fWater.add(wa, 'rippleSpeed', 1, 10, 0.1).name('Velocidad de las ondas (m/s)');
   fWater.add(wa, 'wake', 0, 3, 0.05).name('Estela');
   fWater.add(wa, 'foamLife', 2, 90, 1).name('Duración de la espuma (s)');
   fWater.add(wa, 'dynamicWet').name('Piel mojada automática');
   fWater.add(wa, 'showProbes').name('Ver sondas').onChange(wapply);
+
+  // ------------------------------------------------------------------ bajo el agua (Fase 6)
+  const fUnder = gui.addFolder('Bajo el agua');
+  const us = under.state;
+  const ua = () => under.apply();
+  fUnder.add(us, 'enabled').name('Efectos bajo el agua').onChange(ua);
+  fUnder.add(us, 'info').name('Cámara').listen().disable();
+  fUnder.add(us, 'godRays', 0, 3, 0.05).name('God rays').onChange(ua);
+  fUnder.add(us, 'steps', 2, 48, 1).name('Pasos (god rays)').onChange(ua);
+  fUnder.add(us, 'scattering', 0, 4, 0.05).name('Turbidez (dispersión)').onChange(ua);
+  fUnder.add(us, 'caustics', 0, 3, 0.05).name('Cáusticas').onChange(ua);
+  fUnder.add(us, 'snow', 0, 3, 0.05).name('Partículas en suspensión');
+  fUnder.add(us, 'distortion', 0, 4, 0.05).name('Distorsión').onChange(ua);
+  fUnder.add(us, 'chroma', 0, 4, 0.05).name('Aberración cromática').onChange(ua);
+  fUnder.add(us, 'blur', 0, 4, 0.05).name('Desenfoque lejano').onChange(ua);
+  fUnder.add(us, 'vignette', 0, 1, 0.01).name('Viñeta').onChange(ua);
+  fUnder.add(us, 'lensDrops').name('Gotas en la lente al salir');
 
   // ------------------------------------------------------------------ iluminación y ambiente
   const fLight = gui.addFolder('Iluminación (sin cielo: manual)');

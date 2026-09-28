@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import {
-  Fn, Loop, abs, attribute, cameraFar, cameraNear, cameraPosition, clamp, cos, dot, exp, float, floor, length, log2, max,
-  mix, normalize, perspectiveDepthToViewZ, pmremTexture, positionView, pow, reflect, screenUV, select, sin, smoothstep,
+  Fn, If, Loop, abs, attribute, cameraFar, cameraNear, cameraPosition, clamp, cos, dot, exp, float, floor, frontFacing, length, log2, max,
+  mix, normalize, perspectiveDepthToViewZ, pmremTexture, positionView, pow, reflect, refract, screenUV, select, sin, smoothstep,
   sqrt, texture, uniform, uniformArray, varyingProperty, vec2, vec3, viewportDepthTexture, viewportSharedTexture,
 } from 'three/tsl';
 import { CASCADE_LENGTHS, FFT_SIZE, G, SPECTRUM_DEFAULTS, buildSpectrum, createCpuField } from './spectrum.js';
@@ -9,6 +9,13 @@ import { createFFTOcean } from './fft.js';
 import { GERSTNER_COUNT, GERSTNER_DEFAULTS, buildGerstnerWaves, gerstnerDisplacement } from './gerstner.js';
 
 export const OCEAN_MODES = ['FFT', 'Gerstner'];
+
+/** Tipos de agua (Fase 6.3): proporción de absorción R, G, B (1/m a claridad 14 m), color y claridad. */
+export const WATER_TYPES = {
+  'Océano abierto': { ratio: [0.45, 0.07, 0.045], scatter: '#06303c', clarity: 14 },
+  'Tropical clara': { ratio: [0.42, 0.05, 0.03], scatter: '#0a4a5a', clarity: 28 },
+  'Costera verde': { ratio: [0.5, 0.12, 0.3], scatter: '#163d27', clarity: 6 },
+};
 
 /**
  * Océano (Fase 4): malla hasta el horizonte (4.1), olas de Gerstner (4.2) o FFT (4.3), shading
@@ -25,6 +32,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
   const state = {
     enabled: true,
     mode: 'FFT',
+    waterType: 'Océano abierto',
     level: -0.3,
     ...SPECTRUM_DEFAULTS,
     choppiness: 1.1,
@@ -119,6 +127,8 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     foamJ: uniform(state.foamJacobian),
     haze: uniform(state.haze),
     refraction: uniform(1),
+    sunRefr: uniform(new THREE.Vector3(0, 1, 0)), // hacia el sol, ya refractada dentro del agua
+    caustics: uniform(1),
   };
   const L = CASCADE_LENGTHS;
   const halfTexel = 0.5 / FFT_SIZE;
@@ -153,7 +163,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     return { disp, slope, jac };
   };
 
-  const material = new THREE.MeshBasicNodeMaterial({ fog: false });
+  const material = new THREE.MeshBasicNodeMaterial({ fog: false, side: THREE.DoubleSide }); // por debajo: Fase 6.2
   material.positionNode = Fn(() => {
     const local = attribute('position', 'vec3');
     const cellSize = attribute('cell', 'vec2');
@@ -212,64 +222,85 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
       // la espuma de la ballena también se rompe con el oleaje pequeño (no un disco uniforme)
       foamRaw.addAssign(rs.w.mul(clamp(float(0.7).sub(jSmall.mul(4)), 0.15, 1.6)));
     }
-    const N = normalize(vec3(sl.x.negate(), 1, sl.y.negate())).toVar();
-    // desde arriba, una normal que mira "hacia dentro" se endereza un poco
-    const NdV = dot(N, V);
-    N.assign(select(NdV.lessThan(0.02), normalize(N.add(V.mul(float(0.02).sub(NdV)))), N));
-    const nv = clamp(dot(N, V), 1e-3, 1);
-    // rugosidad: el detalle que ya no se resuelve a distancia se convierte en rugosidad
-    const rough = clamp(u.rough.add(smoothstep(30, 4000, dist).mul(0.16)), 0.02, 1);
-    const F = float(0.02).add(float(0.98).mul(pow(float(1).sub(nv), 5)));
+    const result = vec3(0).toVar();
+    If(frontFacing, () => {
+      const N = normalize(vec3(sl.x.negate(), 1, sl.y.negate())).toVar();
+      // desde arriba, una normal que mira "hacia dentro" se endereza un poco
+      const NdV = dot(N, V);
+      N.assign(select(NdV.lessThan(0.02), normalize(N.add(V.mul(float(0.02).sub(NdV)))), N));
+      const nv = clamp(dot(N, V), 1e-3, 1);
+      // rugosidad: el detalle que ya no se resuelve a distancia se convierte en rugosidad
+      const rough = clamp(u.rough.add(smoothstep(30, 4000, dist).mul(0.16)), 0.02, 1);
+      const F = float(0.02).add(float(0.98).mul(pow(float(1).sub(nv), 5)));
 
-    // reflejo del cielo (PMREM con cielo y nubes); el rayo no puede apuntar bajo el horizonte
-    const R = reflect(V.negate(), N).toVar();
-    R.y.assign(abs(R.y));
-    envRefl.uvNode = R;
-    envRefl.levelNode = rough;
-    const env = envRefl.rgb.mul(u.envIntensity);
+      // reflejo del cielo (PMREM con cielo y nubes); el rayo no puede apuntar bajo el horizonte
+      const R = reflect(V.negate(), N).toVar();
+      R.y.assign(abs(R.y));
+      envRefl.uvNode = R;
+      envRefl.levelNode = rough;
+      const env = envRefl.rgb.mul(u.envIntensity);
 
-    // reflejo del sol: GGX + Smith (aprox. de Schlick)
-    const Ls = normalize(u.sunDir);
-    const H = normalize(Ls.add(V));
-    const nl = clamp(dot(N, Ls), 0, 1);
-    const nh = clamp(dot(N, H), 0, 1);
-    const a2 = rough.mul(rough).mul(rough).mul(rough);
-    const dd = nh.mul(nh).mul(a2.sub(1)).add(1);
-    const D = a2.div(dd.mul(dd).mul(Math.PI));
-    const k = rough.mul(rough).mul(0.5);
-    const vis = float(1).div(nl.mul(float(1).sub(k)).add(k).mul(nv.mul(float(1).sub(k)).add(k)).mul(4));
-    const Fs = float(0.02).add(float(0.98).mul(pow(float(1).sub(clamp(dot(V, H), 0, 1)), 5)));
-    const shadow = clouds.cloudShadowNode(pos);
-    const sunSpec = vec3(u.sunRadiance).mul(D.mul(vis).mul(Fs).mul(nl).min(60)).mul(shadow);
+      // reflejo del sol: GGX + Smith (aprox. de Schlick)
+      const Ls = normalize(u.sunDir);
+      const H = normalize(Ls.add(V));
+      const nl = clamp(dot(N, Ls), 0, 1);
+      const nh = clamp(dot(N, H), 0, 1);
+      const a2 = rough.mul(rough).mul(rough).mul(rough);
+      const dd = nh.mul(nh).mul(a2.sub(1)).add(1);
+      const D = a2.div(dd.mul(dd).mul(Math.PI));
+      const k = rough.mul(rough).mul(0.5);
+      const vis = float(1).div(nl.mul(float(1).sub(k)).add(k).mul(nv.mul(float(1).sub(k)).add(k)).mul(4));
+      const Fs = float(0.02).add(float(0.98).mul(pow(float(1).sub(clamp(dot(V, H), 0, 1)), 5)));
+      const shadow = clouds.cloudShadowNode(pos);
+      const sunSpec = vec3(u.sunRadiance).mul(D.mul(vis).mul(Fs).mul(nl).min(60)).mul(shadow);
 
-    // luz que sale del agua: dispersión en el volumen (azul verdoso) + SSS en las crestas
-    const sunUp = clamp(u.sunDir.y.mul(4), 0, 1);
-    const light = vec3(u.sunRadiance).mul(sunUp.mul(0.35).mul(shadow)).add(vec3(u.ambient));
-    const body = vec3(u.scatter).mul(light);
-    const height = pos.y.sub(u.level);
-    const sssDir = pow(clamp(dot(V, Ls.negate().add(N.mul(0.4)).normalize()), 0, 1), 4);
-    const sss = vec3(u.scatter).mul(vec3(u.sunRadiance)).mul(sssDir.mul(clamp(height.mul(0.6).add(0.3), 0, 1.5)).mul(u.sss).mul(shadow).mul(0.6));
-    let under = body.add(sss);
+      // luz que sale del agua: dispersión en el volumen (azul verdoso) + SSS en las crestas
+      const sunUp = clamp(u.sunDir.y.mul(4), 0, 1);
+      const light = vec3(u.sunRadiance).mul(sunUp.mul(0.35).mul(shadow)).add(vec3(u.ambient));
+      const body = vec3(u.scatter).mul(light);
+      const height = pos.y.sub(u.level);
+      const sssDir = pow(clamp(dot(V, Ls.negate().add(N.mul(0.4)).normalize()), 0, 1), 4);
+      const sss = vec3(u.scatter).mul(vec3(u.sunRadiance)).mul(sssDir.mul(clamp(height.mul(0.6).add(0.3), 0, 1.5)).mul(u.sss).mul(shadow).mul(0.6));
+      let under = body.add(sss);
 
-    // refracción: lo que hay bajo la superficie (la ballena), atenuado según el espesor de agua
-    const refrUV = screenUV.add(N.xz.mul(0.04).div(max(dist.mul(0.1), 1)));
-    const sceneZ = perspectiveDepthToViewZ(viewportDepthTexture(refrUV).x, cameraNear, cameraFar);
-    const thick = max(positionView.z.sub(sceneZ), 0);
-    const trans = exp(vec3(u.absorb).negate().mul(thick)).mul(u.refraction);
-    const behind = viewportSharedTexture(refrUV).rgb;
-    under = mix(under, behind, trans);
+      // refracción: lo que hay bajo la superficie (la ballena), atenuado según el espesor de agua
+      const refrUV = screenUV.add(N.xz.mul(0.04).div(max(dist.mul(0.1), 1)));
+      const sceneZ = perspectiveDepthToViewZ(viewportDepthTexture(refrUV).x, cameraNear, cameraFar);
+      const thick = max(positionView.z.sub(sceneZ), 0);
+      const trans = exp(vec3(u.absorb).negate().mul(thick)).mul(u.refraction);
+      const behind = viewportSharedTexture(refrUV).rgb;
+      under = mix(under, behind, trans);
 
-    let col = env.mul(F).mul(u.refl).add(sunSpec).add(under.mul(float(1).sub(F)));
-    // espuma de rompiente: blanca y difusa
-    const foamAmt = smoothstep(0.0, 1.0, foamRaw.mul(u.foam));
-    const foamLit = vec3(u.sunRadiance).mul(nl.mul(0.45).add(0.15).mul(shadow)).add(vec3(u.ambient).mul(2.2)).mul(0.9);
-    col = mix(col, foamLit, foamAmt);
-    // perspectiva aérea: hacia el color del cielo en el horizonte
-    envHorizon.uvNode = normalize(vec3(V.x.negate(), 0.03, V.z.negate()));
-    envHorizon.levelNode = float(0.35);
-    const horizon = envHorizon.rgb.mul(u.envIntensity);
-    const hz = float(1).sub(exp(dist.div(u.haze.mul(1000 / 3)).negate()));
-    return mix(col, horizon, hz);
+      let col = env.mul(F).mul(u.refl).add(sunSpec).add(under.mul(float(1).sub(F)));
+      // espuma de rompiente: blanca y difusa
+      const foamAmt = smoothstep(0.0, 1.0, foamRaw.mul(u.foam));
+      const foamLit = vec3(u.sunRadiance).mul(nl.mul(0.45).add(0.15).mul(shadow)).add(vec3(u.ambient).mul(2.2)).mul(0.9);
+      col = mix(col, foamLit, foamAmt);
+      // perspectiva aérea: hacia el color del cielo en el horizonte
+      envHorizon.uvNode = normalize(vec3(V.x.negate(), 0.03, V.z.negate()));
+      envHorizon.levelNode = float(0.35);
+      const horizon = envHorizon.rgb.mul(u.envIntensity);
+      const hz = float(1).sub(exp(dist.div(u.haze.mul(1000 / 3)).negate()));
+      result.assign(mix(col, horizon, hz));
+    }).Else(() => {
+      // 6.2 superficie vista desde abajo: ventana de Snell (refracción hacia el aire dentro de ~48,6°)
+      // y reflexión total interna fuera de ella
+      const Nu = normalize(vec3(sl.x.negate(), 1, sl.y.negate()));
+      const Iup = V.negate(); // de la cámara (bajo el agua) hacia la superficie
+      const Rt = refract(Iup, Nu.negate(), 1.333);
+      const tir = dot(Rt, Rt).lessThan(1e-4);
+      const cosT = clamp(dot(Rt, Nu), 0, 1);
+      const Fw = select(tir, float(1), float(0.02).add(float(0.98).mul(pow(float(1).sub(cosT), 5))));
+      // lo que se ve a través: la escena ya dibujada (cielo, nubes, ballena en el aire), desplazada
+      const uvT = screenUV.add(Nu.xz.mul(0.06).div(max(dist.mul(0.15), 1)));
+      const through = viewportSharedTexture(uvT).rgb;
+      // lo reflejado: el propio mar visto desde dentro (luz dispersada, más oscura con la profundidad)
+      const shadowU = clouds.cloudShadowNode(pos);
+      const lightU = vec3(u.sunRadiance).mul(clamp(u.sunDir.y.mul(4), 0, 1).mul(0.35).mul(shadowU)).add(vec3(u.ambient));
+      const inner = vec3(u.scatter).mul(lightU).mul(0.6);
+      result.assign(through.mul(float(1).sub(Fw)).add(inner.mul(Fw)));
+    });
+    return result;
   })();
 
   /**
@@ -282,6 +313,32 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     h = mix(h, gerstnerAt(xz, false).disp.y, u.gerstner);
     if (ripples) h = h.add(ripples.sampleNode(xz, 0).x);
     return h.add(u.level);
+  };
+
+  /**
+   * Luz que llega a un punto bajo el agua (Fases 6.3 y 6.5), como multiplicador RGB: absorción en el
+   * camino desde la superficie y cáusticas. Las cáusticas salen del jacobiano de las cascadas
+   * medianas en el punto de la superficie por donde entra el sol (J < 1: la ola enfoca la luz); se
+   * difuminan con la profundidad (mip) y el oleaje pequeño se apaga en unos 12 m.
+   */
+  const causticNode = (p, sharp = false) => {
+    const D = max(u.level.sub(p.y), 0.0);
+    const up = u.sunRefr;
+    const xzS = p.xz.add(up.xz.mul(D.div(max(up.y, 0.25))));
+    // los haces de luz (sharp) se ven más definidos que las cáusticas sobre los objetos
+    const lod = log2(D.mul(sharp ? 0.08 : 0.3).add(1));
+    const J1 = derivTex[1].sample(xzS.div(L[1]).add(halfTexel)).level(lod).z;
+    const J2 = derivTex[2].sample(xzS.div(L[2]).add(halfTexel)).level(lod.add(1)).z;
+    const w1 = D.div(D.add(3)), w2 = D.div(D.add(0.7)).mul(exp(D.div(-12)));
+    const c = clamp(float(1).add(float(1).sub(J1).mul(w1).mul(4)).add(float(1).sub(J2).mul(w2).mul(3)), 0.1, 4);
+    return mix(float(1), c.mul(c), u.caustics).mul(clouds.cloudShadowNode(vec3(xzS.x, u.level, xzS.y)));
+  };
+  const underLightNode = (p) => {
+    const D = max(u.level.sub(p.y), 0.0);
+    const T = exp(vec3(u.absorb).negate().mul(D.div(max(u.sunRefr.y, 0.3))));
+    const sunFrac = clamp(u.sunDir.y.mul(4), 0, 1).mul(0.6);
+    const lit = T.mul(mix(float(1), causticNode(p), sunFrac));
+    return select(p.y.lessThan(u.level), lit, vec3(1));
   };
 
   const mesh = new THREE.Mesh(geometry, material);
@@ -308,7 +365,8 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     u.scatter.value.set(state.scatterColor);
     // absorción del agua de mar (1/m) escalada por la claridad: rojo ≫ verde > azul
     const k = 14 / Math.max(state.clarity, 0.5);
-    u.absorb.value.set(0.45 * k, 0.07 * k, 0.045 * k);
+    const ratio = (WATER_TYPES[state.waterType] ?? WATER_TYPES['Océano abierto']).ratio;
+    u.absorb.value.set(ratio[0] * k, ratio[1] * k, ratio[2] * k);
     u.sss.value = state.sss;
     u.rough.value = state.roughness;
     u.refl.value = state.reflections;
@@ -361,6 +419,9 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     modes: OCEAN_MODES,
     heightAt,
     surfaceHeightNode,
+    causticNode,
+    underLightNode,
+    waterTypes: WATER_TYPES,
     mesh,
     fft,
     uniforms: u,
@@ -373,6 +434,10 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
       if (scene.environment && envRefl.value !== scene.environment) envRefl.value = envHorizon.value = scene.environment;
       u.envIntensity.value = scene.environmentIntensity ?? 1;
       u.sunDir.value.copy(light.dir);
+      // dirección del sol dentro del agua (Snell, n = 1,333), apuntando hacia arriba
+      const sy = Math.max(light.dir.y, 0.02), eta = 1 / 1.333;
+      const k2 = 1 - eta * eta * (1 - sy * sy);
+      u.sunRefr.value.set(light.dir.x * eta, 0, light.dir.z * eta).setY(Math.sqrt(Math.max(k2, 0))).normalize();
       sunColor.copy(sun.color).multiplyScalar(sun.visible ? sun.intensity : 0);
       u.sunRadiance.value.copy(sunColor);
       u.ambient.value.copy(light.ambient);

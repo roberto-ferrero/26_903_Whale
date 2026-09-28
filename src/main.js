@@ -19,6 +19,9 @@ import { createClouds } from './sky/clouds.js';
 import { createOcean } from './ocean/ocean.js';
 import { createRipples } from './water/ripples.js';
 import { createInteraction } from './water/interaction.js';
+import { createUnderwater } from './underwater/underwater.js';
+import { createSnow } from './underwater/snow.js';
+import { output, positionWorld, vec4 } from 'three/tsl';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
 const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.ktx2`;
@@ -65,6 +68,10 @@ helpers.setWaterShadow((p) => clouds.cloudShadowNode(p)); // sombras de nubes so
 const fsm = createWhaleStates(viewer.scene, whale, anim, helpers.state);
 const skeleton = createSkeletonHelpers(viewer.scene, whale);
 const water = createInteraction({ renderer: viewer.renderer, scene: viewer.scene, whale, ocean, ripples, fsm });
+const under = createUnderwater({ renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, ocean }); // Fase 6
+const snow = createSnow({ scene: viewer.scene, ocean });
+// bajo el agua, la ballena recibe la luz que llega a esa profundidad, con cáusticas (Fase 6.5)
+for (const m of Object.values(whale.materials)) m.outputNode = output.mul(vec4(ocean.underLightNode(positionWorld), 1));
 const anchor = createAnchor(viewer.scene, whale, helpers.state);
 const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, () => fsm.state.current);
 const debug = createDebug(container, whale, fsm);
@@ -82,12 +89,13 @@ params.add('cielo', sky.state, applySky, ['enabled', 'model', 'ozone', 'multiSca
 params.add('nubes', clouds.state, applyClouds);
 params.add('oceano', ocean.state, () => ocean.apply(), Object.keys(ocean.state).filter((k) => k !== 'info'));
 params.add('agua', water.state, water.apply, Object.keys(water.state).filter((k) => k !== 'info'));
+params.add('bajoagua', under.state, under.apply, Object.keys(under.state).filter((k) => k !== 'info'));
 params.add('modelo', look.state, look.apply);
 params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
 params.add('debug', debug.state, debug.apply);
 const presets = loadBuiltinPresets();
-createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
+createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
 applySky();
 params.readURL();
 
@@ -115,6 +123,8 @@ function frame(realDt) {
   sky.renderEnv(); // entorno PMREM con el cielo y las nubes ya actualizados
   ocean.update(dt, sky.light, viewer.sun); // oleaje FFT (compute) y luz del agua (Fase 4)
   water.update(dt, sky.light, viewer.sun); // sondas, ondas, espuma y salpicaduras (Fase 5)
+  under.update(realDt); // ¿cámara bajo el agua? (Fase 6)
+  snow.update(dt, under.underwater, under.state.snow);
   lod.update(viewer.camera);
   helpers.update();
   skeleton.update();
@@ -122,7 +132,7 @@ function frame(realDt) {
   debug.update();
   if (!viewer.ensureSize()) return false; // ventana oculta: evita texturas de tamaño 0
   clouds.render(viewer.camera); // pase de nubes a resolución reducida (Fase 3.4)
-  viewer.renderer.render(viewer.scene, viewer.camera);
+  under.render(); // escena + posprocesado bajo el agua (Fase 6)
   viewer.labelRenderer.render(viewer.scene, viewer.camera);
   const c = clock.state;
   stats.update(
@@ -140,7 +150,7 @@ function frame(realDt) {
 if (import.meta.env.DEV) {
   const renderer = viewer.renderer;
   window.whaleViewer = {
-    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, helpers, skeleton, anchor, cameras, debug, params,
+    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, helpers, skeleton, anchor, cameras, debug, params,
     /** Dibuja n fotogramas a paso fijo aunque la pestaña esté oculta; devuelve el tiempo de GPU del último (ms). */
     async renderFrames(n = 1, realDt = 1 / 30, size = [1280, 720]) {
       if (renderer.domElement.width === 0 || window.innerWidth === 0) {
@@ -154,7 +164,7 @@ if (import.meta.env.DEV) {
         renderer._nodes.nodeFrame.update();
         if (!frame(realDt)) {
           clouds.render(viewer.camera);
-          renderer.render(viewer.scene, viewer.camera);
+          under.render();
         }
         await renderer.resolveTimestampsAsync('render');
       }

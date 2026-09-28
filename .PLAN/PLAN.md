@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.23 · 28/09/2026
+Versión 0.24 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -211,18 +211,26 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 6: Cámara bajo el agua
+## [x] Fase 6: Cámara bajo el agua
 
-- [ ] **Fase 6.1 Transición.** Detección de cámara bajo la superficie y línea de flotación en pantalla (media imagen arriba y media abajo, con menisco y gotas en la lente al salir).
-- [ ] **Fase 6.2 Superficie vista desde abajo.** Ventana de Snell, reflexión total interna y refracción del cielo y del sol.
-- [ ] **Fase 6.3 Niebla y absorción.** Atenuación por longitud de onda (el rojo desaparece primero) y *fades* por distancia y profundidad, con color parametrizable (océano abierto, agua costera verde...).
-- [ ] **Fase 6.4 God rays.** Raymarching volumétrico usando la superficie animada como máscara de sombra (versión *screen-space* como opción de bajo coste).
-- [ ] **Fase 6.5 Cáusticas.** Proyectadas sobre la ballena y sobre las partículas.
-- [ ] **Fase 6.6 Burbujas.** Nubes de burbujas en la entrada y salida de la ballena, estela de burbujas y burbujas que suben y estallan en superficie.
-- [ ] **Fase 6.7 Partículas en suspensión.** Nieve marina y plancton flotando con corrientes, iluminados por los god rays.
-- [ ] **Fase 6.8 Post-procesado subacuático.** Distorsión leve, viñeta, desenfoque por distancia y aberración cromática sutil.
+- [x] **Fase 6.1 Transición.** Detección de cámara bajo la superficie y línea de flotación en pantalla (media imagen arriba y media abajo, con menisco y gotas en la lente al salir).
+  - Hecho: `underwater/underwater.js`: máscara por píxel con la altura real de la superficie en una "cúpula" a 0,5 m, menisco oscuro y gotas procedurales que resbalan y se secan en 4 s.
+- [x] **Fase 6.2 Superficie vista desde abajo.** Ventana de Snell, reflexión total interna y refracción del cielo y del sol.
+  - Hecho: cara inferior del océano con `refract` (n = 1,333) y Fresnel. Dentro de la ventana se ve el cielo y la ballena en el aire; fuera, reflexión total interna.
+- [x] **Fase 6.3 Niebla y absorción.** Atenuación por longitud de onda (el rojo desaparece primero) y *fades* por distancia y profundidad, con color parametrizable (océano abierto, agua costera verde...).
+  - Hecho: transmitancia por canal y luz dispersada según la profundidad. Tres tipos de agua: océano abierto, tropical clara y costera verde.
+- [x] **Fase 6.4 God rays.** Raymarching volumétrico usando la superficie animada como máscara de sombra (versión *screen-space* como opción de bajo coste).
+  - Hecho: 16 pasos (de 2 a 48) que leen las cáusticas de la superficie a lo largo del sol refractado; la versión barata es bajar los pasos.
+- [x] **Fase 6.5 Cáusticas.** Proyectadas sobre la ballena y sobre las partículas.
+  - Hecho: `ocean.causticNode` / `underLightNode` (jacobiano de las cascadas medianas, difuminado con la profundidad) aplicados a la ballena (`outputNode`), las salpicaduras, las burbujas y la nieve marina.
+- [x] **Fase 6.6 Burbujas.** Nubes de burbujas en la entrada y salida de la ballena, estela de burbujas y burbujas que suben y estallan en superficie.
+  - Hecho: partícula burbuja con velocidad terminal, bamboleo y estallido. Nubes en `impact` y `surface_exit`, huella al entrar y estela de aire atrapado.
+- [x] **Fase 6.7 Partículas en suspensión.** Nieve marina y plancton flotando con corrientes, iluminados por los god rays.
+  - Hecho: `underwater/snow.js`, 14 000 sprites anclados al mundo alrededor de la cámara, con corriente y la luz del agua con cáusticas.
+- [x] **Fase 6.8 Post-procesado subacuático.** Distorsión leve, viñeta, desenfoque por distancia y aberración cromática sutil.
+  - Hecho, solo en los píxeles bajo el agua.
 
-**Hecho cuando:** se puede bajar la cámara bajo el agua y ver a la ballena subir hacia la luz y romper la superficie desde abajo.
+**Hecho cuando:** se puede bajar la cámara bajo el agua y ver a la ballena subir hacia la luz y romper la superficie desde abajo. ✔ Cumplido el 28/09/2026. Coste: 6,2 ms por fotograma a 720p bajo el agua; lejos del agua no se usa el posprocesado. Detalle y secuencia: [docs/fase_6_bajo_el_agua.md](docs/fase_6_bajo_el_agua.md).
 
 ---
 

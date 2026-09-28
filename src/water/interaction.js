@@ -30,12 +30,13 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     foamLife: 25, // s
     wake: 1,
     curtains: 1,
+    bubbles: 1, // Fase 6.6
     dynamicWet: true,
     showProbes: false,
     info: '',
   };
 
-  const splash = createSplash(renderer, scene, { surfaceHeight: ocean.surfaceHeightNode });
+  const splash = createSplash(renderer, scene, { surfaceHeight: ocean.surfaceHeightNode, lightNode: ocean.underLightNode });
 
   // ------------------------------------------------------------------ sondas
   const bones = new Map();
@@ -43,8 +44,8 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
   const probes = PROBES.filter(([name]) => bones.has(name)).map(([name, r, role]) => ({
     name, r, role, bone: bones.get(name),
     pos: new THREE.Vector3(), prev: new THREE.Vector3(), vel: new THREE.Vector3(),
-    depth: -99, water: 0, lastSubmerged: -1e9, exitSpeed: 0, ready: false,
-    acc: { drop: 0, spray: 0, mist: 0, sheet: 0 },
+    depth: -99, water: 0, lastSubmerged: -1e9, lastAir: -1e9, exitSpeed: 0, ready: false,
+    acc: { drop: 0, spray: 0, mist: 0, sheet: 0, bubble: 0 },
   }));
   const probeGeo = new THREE.SphereGeometry(1, 12, 8);
   const probeMats = [0x42a5f5, 0xffca28, 0xef5350].map((c) => new THREE.MeshBasicNodeMaterial({ color: c, wireframe: true }));
@@ -92,12 +93,15 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
       splash.emit({ pos: c, vel: new THREE.Vector3(), radius: 5, spread: 8, type: T.spray, size: [0.08, 0.25], life: 2.5, up: 0.4, ring: true }, 5000 * d);
       splash.emit({ pos: c.clone().setY(wl + 1.5), vel: new THREE.Vector3(0, 2.5, 0), radius: 5, spread: 5, type: T.mist, size: [2, 5], life: 5, up: 0.2 }, 220 * d);
       pulses.push([c.x, c.z, 4, -5 * state.waves, 6, 0.3]);
+      // 6.6 nube de burbujas: el aire que arrastra el cuerpo al caer
+      splash.emit({ pos: c.clone().setY(wl - 3), vel: new THREE.Vector3(), radius: 5, spread: 1.5, type: T.bubble, size: [0.02, 0.18], life: 9 }, 6000 * d * state.bubbles);
     } else if (name === 'surface_exit') {
       const head = probes.find((p) => p.role === 'head');
       const hv = head ? head.vel.clone() : new THREE.Vector3(0, 8, 0);
       splash.emit({ pos: c, vel: hv.clone().multiplyScalar(0.5), radius: 2.5, spread: 5, type: T.drop, size: [0.04, 0.12], life: 3.5, up: 0.5, ring: true }, 3500 * d);
       splash.emit({ pos: c, vel: new THREE.Vector3(0, 1.5, 0), radius: 3, spread: 3, type: T.mist, size: [1.5, 4], life: 4, up: 0.3 }, 80 * d);
       pulses.push([c.x, c.z, 3, 2.5 * state.waves, 3, 0.2]);
+      splash.emit({ pos: c.clone().setY(wl - 2), vel: new THREE.Vector3(0, 1, 0), radius: 3, spread: 1, type: T.bubble, size: [0.02, 0.12], life: 6 }, 1500 * d * state.bubbles);
     }
   }
 
@@ -138,7 +142,7 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
       // profundidad del centro respecto a la superficie (sin consultar si está muy hondo)
       p.water = p.pos.y < level - 8 ? level : ocean.heightAt(p.pos.x, p.pos.z);
       p.depth = p.pos.y - p.water;
-      if (p.depth < 0) { p.lastSubmerged = time; p.exitSpeed = Math.max(p.vel.y, 0); wetCount++; }
+      if (p.depth < 0) { p.lastSubmerged = time; p.exitSpeed = Math.max(p.vel.y, 0); wetCount++; } else p.lastAir = time;
       probeMeshes[i].visible = state.showProbes;
       if (state.showProbes) {
         probeMeshes[i].position.copy(p.pos);
@@ -170,6 +174,17 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
         } else if (vh > 1.5) {
           // roza la superficie nadando: spray fino
           emit(p, 'spray', 18 * ar * vh * dt, { pos: tmp.clone(), vel: p.vel.clone().multiplyScalar(0.3), radius: ar, spread: 1.2, type: T.spray, size: [0.1, 0.3], life: 1.5, up: 0.4, ring: true });
+        }
+        if (vy < -0.8) {
+          // el cuerpo mete aire al entrar: burbujas bajo la huella
+          emit(p, 'bubble', 120 * ar * -vy * dt * state.bubbles, { pos: tmp.clone().setY(p.water - p.r), vel: p.vel.clone().multiplyScalar(0.3), radius: ar, spread: 1, type: T.bubble, size: [0.02, 0.12], life: 7 });
+        }
+      } else if (active && p.depth < -p.r) {
+        // 6.6 estela de burbujas: bajo el agua, poco después de haber estado fuera (aire atrapado)
+        const since = time - p.lastAir;
+        const sp = p.vel.length();
+        if (since < 4 && sp > 2) {
+          emit(p, 'bubble', 30 * p.r * sp * (1 - since / 4) * dt * state.bubbles, { pos: p.pos.clone(), vel: p.vel.clone().multiplyScalar(0.2), radius: p.r, spread: 0.6, type: T.bubble, size: [0.015, 0.1], life: 6 });
         }
       } else if (active && p.depth > p.r) {
         // 5.4 cortinas: el agua que el cuerpo ha sacado cae durante ~2 s; goteo de las aletas más tiempo
