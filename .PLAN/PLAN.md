@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.16 · 28/09/2026
+Versión 0.17 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -126,7 +126,12 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
     - Visor Three.js (WebGPU) con ayudas y panel lil-gui: clips, LOD, mojado, iluminación, cámara.
     - Detalle: [docs/visor_modelo.md](docs/visor_modelo.md).
     - Re-exportado tras la 1.7 (19,1 MB, 10 clips, eventos de `breach_body` en `extras`).
-  - Pendiente: KTX2 y compresión de malla, y validación final.
+    - Tangentes MikkTSpace exportadas.
+    - **Compresión meshopt** (`gltfpack -cc`): geometría y animación en 0,5 MB, 17,0 MB en total.
+    - **Validación** con el validador de Khronos (0 errores) y comprobaciones propias (`npm run validate:model`).
+    - Visor con `MeshoptDecoder` y `KTX2Loader`. Eventos copiados en el hueso `Root`, porque gltfpack quita los extras de las animaciones.
+    - Detalle: [docs/fase_1_8_exportacion.md](docs/fase_1_8_exportacion.md).
+  - Pendiente: **texturas KTX2** (el 96 % del tamaño); a la espera de permiso para descargar el `gltfpack` nativo.
 - [ ] **Fase 1.9 (opcional) Refinado.** Esculpido y texturas.
 
 **Hecho cuando:** el GLB carga en Three.js y reproduce los clips con *crossfade* sin artefactos en la piel.

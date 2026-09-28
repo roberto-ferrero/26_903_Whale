@@ -32,7 +32,7 @@ bpy.ops.export_scene.gltf(
     export_apply=False,
     export_image_format="AUTO",
     export_materials="EXPORT",
-    export_tangents=False,
+    export_tangents=True,  # tangentes MikkTSpace, las mismas con las que se horneó el normal map
     export_extras=True,
     export_skins=True,
     export_influence_nb=4,

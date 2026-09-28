@@ -22,7 +22,7 @@ const viewer = await createViewer(container);
 
 let whale;
 try {
-  whale = await loadWhale(MODEL_URL, WET_URL);
+  whale = await loadWhale(MODEL_URL, WET_URL, viewer.renderer);
 } catch (err) {
   console.error(err);
   message.innerHTML = 'No se pudo cargar <code>public/models/whale.glb</code>.<br>'

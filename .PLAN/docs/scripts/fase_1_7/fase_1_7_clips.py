@@ -108,6 +108,8 @@ act = bake("breach_body", poses)
 events = {"surface_exit": round(63 / FPS, 3), "apex": round(87 / FPS, 3), "impact": round(122 / FPS, 3)}
 act["events"] = json.dumps(events)
 act["source"] = src.name
+# copia en el hueso Root: gltfpack (Fase 1.8) conserva los extras de nodos pero no los de animaciones
+rig.data.bones["Root"]["clip_events"] = json.dumps({"breach_body": events})
 rep["breach_body"] = {"source": src.name, "frames": f1 - f0 + 1, "seconds": round((f1 - f0) / FPS, 2), "events_s": events}
 
 for t in ad.nla_tracks:

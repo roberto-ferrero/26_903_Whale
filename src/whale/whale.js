@@ -1,5 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { float, mix, texture, uniform } from 'three/tsl';
 
 const LOD_NAMES = ['Whale_LOD0', 'Whale_LOD1', 'Whale_LOD2'];
@@ -28,14 +30,18 @@ function toNodeMaterial(source) {
  * Carga el GLB de la ballena: LODs, animaciones y material de piel con mojado (TSL).
  * @param {string} url      GLB exportado desde Blender (export_glb.py)
  * @param {string} wetUrl   mapa de mojado: R rugosidad mojada, G retención de agua, B altura
+ * @param {THREE.WebGPURenderer} renderer  para elegir el formato de transcodificación KTX2
+ * Admite GLB comprimidos (Fase 1.8): mallas con EXT_meshopt_compression y texturas KTX2 (Basis).
  */
-export async function loadWhale(url, wetUrl) {
-  const gltf = await new GLTFLoader().loadAsync(url);
+export async function loadWhale(url, wetUrl, renderer) {
+  const ktx2 = new KTX2Loader().setTranscoderPath(`${import.meta.env.BASE_URL}basis/`).detectSupport(renderer);
+  const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync(url);
   const root = gltf.scene;
   const lods = LOD_NAMES.map((name) => root.getObjectByName(name));
   if (lods.some((lod) => !lod)) throw new Error(`El GLB no contiene ${LOD_NAMES.join(', ')}`);
 
-  const wetMap = await new THREE.TextureLoader().loadAsync(wetUrl);
+  const wetMap = await (wetUrl.endsWith('.ktx2') ? ktx2 : new THREE.TextureLoader()).loadAsync(wetUrl);
   wetMap.flipY = false; // mismas UVs que las texturas glTF
   wetMap.colorSpace = THREE.NoColorSpace;
 
@@ -81,6 +87,12 @@ export async function loadWhale(url, wetUrl) {
     if (extras?.events) clipEvents[clip.name] = typeof extras.events === 'string' ? JSON.parse(extras.events) : extras.events;
     actions[clip.name] = mixer.clipAction(clip);
   });
+  // copia de los eventos en los extras del hueso Root (sobrevive a gltfpack, que quita los de las animaciones)
+  const rootEvents = rootBone?.userData.clip_events;
+  if (rootEvents) {
+    const parsed = typeof rootEvents === 'string' ? JSON.parse(rootEvents) : rootEvents;
+    for (const [name, ev] of Object.entries(parsed)) clipEvents[name] ??= ev;
+  }
 
   const skinned = meshes.filter((m) => m.isSkinnedMesh);
   const triangles = lods.map((lod) => {
