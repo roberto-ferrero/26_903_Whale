@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.12 · 28/09/2026
+Versión 0.13 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -92,7 +92,13 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
     - Pesos limitados a 4 influencias y normalizados: error de deformación de 2,2 mm de media, sin artefactos visibles; lo máximo, 13 cm en la punta de la caudal.
     - No hace falta hornear: el normal map entregado ya reproduce el detalle del esculpido.
   - Detalle: [docs/fase_1_4_geometria.md](docs/fase_1_4_geometria.md).
-- [ ] **Fase 1.5 Texturas PBR glTF.** baseColor, normal y ORM a 2K, ajuste de color a las referencias y máscara de "mojado" para Three.js.
+- [x] **Fase 1.5 Texturas PBR glTF.** baseColor, normal y ORM a 2K, ajuste de color a las referencias y máscara de "mojado" para Three.js.
+  - Resultado (28/09/2026):
+    - Texturas glTF 2K: baseColor, ORM (AO, rugosidad seca, metal 0) y normal. Las "barbs" llevan RGBA con recorte de alfa.
+    - `whale_wet_2k` para Three.js: R = rugosidad mojada, G = retención de agua, B = altura.
+    - Ajuste de color leve: negros menos azules y algo más claros, y solo el 35 % de la AO en el color; el resto, en el ORM.
+    - Materiales reconstruidos para el exportador glTF.
+  - Detalle: [docs/fase_1_5_texturas.md](docs/fase_1_5_texturas.md).
 - [ ] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice (ya aplicado en la 1.4; queda revisar la caudal).
   - Columna: cadena de 12-16 huesos desde la cabeza hasta el pedúnculo.
   - Cabeza y mandíbula.
