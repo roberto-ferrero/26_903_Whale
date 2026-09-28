@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three/webgpu';
 import GUI from 'lil-gui';
 
-const container = document.querySelector<HTMLDivElement>('#app')!;
+const container = document.querySelector('#app');
 
 const renderer = new THREE.WebGPURenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -35,14 +35,14 @@ const params = {
 
 const gui = new GUI({ title: 'Fase 0 · Test' });
 gui.add(params, 'rotationSpeed', 0, 5, 0.01).name('Velocidad');
-gui.addColor(params, 'color').name('Color').onChange((v: string) => material.color.set(v));
-gui.add(params, 'wireframe').name('Wireframe').onChange((v: boolean) => (material.wireframe = v));
-gui.add(params, 'exposure', 0.1, 3, 0.01).name('Exposición').onChange((v: number) => (renderer.toneMappingExposure = v));
+gui.addColor(params, 'color').name('Color').onChange((v) => material.color.set(v));
+gui.add(params, 'wireframe').name('Wireframe').onChange((v) => (material.wireframe = v));
+gui.add(params, 'exposure', 0.1, 3, 0.01).name('Exposición').onChange((v) => (renderer.toneMappingExposure = v));
 
 const timer = new THREE.Timer();
 
 await renderer.init();
-const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL2 (fallback)';
+const backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL2 (fallback)';
 gui.add({ backend }, 'backend').name('Backend').disable();
 console.info(`Renderer backend: ${backend}`);
 

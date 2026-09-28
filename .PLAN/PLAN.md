@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.6 · 28/09/2026
+Versión 0.7 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -18,7 +18,7 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 | Área | Elección | Motivo |
 |---|---|---|
-| Proyecto | Vite + TypeScript | Arranque rápido, HMR y tipos para un proyecto grande |
+| Proyecto | Vite + JavaScript (ES modules, sin TypeScript) | Arranque rápido y HMR, sin paso de compilación de tipos |
 | Render | Three.js `WebGPURenderer` + TSL (con *fallback* WebGL2) | Compute shaders para la FFT del océano, partículas en GPU y nubes |
 | UI de parámetros | lil-gui (o Tweakpane) | Ajuste en vivo y presets en JSON |
 | Modelo 3D | Blender 5.1.1 → glTF/GLB (meshopt + texturas KTX2) | Formato nativo de Three.js con esqueleto y animaciones |
@@ -29,7 +29,7 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 ## [~] Fase 0: Preparación
 
 - [x] **Fase 0.1** Decisiones tomadas (28/09/2026):
-  - Especie: ballena jorobada. Renderer: WebGPU con fallback WebGL2. Objetivo: tiempo real en navegador de escritorio. Vite + TypeScript.
+  - Especie: ballena jorobada. Renderer: WebGPU con fallback WebGL2. Objetivo: tiempo real en navegador de escritorio. Vite + JavaScript (sin TypeScript, decidido el 28/09/2026).
   - Modelo: se parte del modelo descargado y se crea una versión optimizada; el trabajo en Blender se automatiza con scripts bpy (Blender 5.1.1).
   - Rutas:
     - Plan: `D:\Trabajo\Proyectos_LEGION\26_903_Whale\_Repos\26_903_Whale\.PLAN` (con las referencias en `.PLAN\referencias`)
