@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.11 · 28/09/2026
+Versión 0.12 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -85,9 +85,15 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
   - Verificado: las 35 poses de control coinciden con el original escalado (error máximo 0,86 mm).
   - Los n-gons y el límite de 4 influencias se dejan para después de aplicar la subdivisión (1.4/1.6).
   - Detalle: [docs/fase_1_3_limpieza.md](docs/fase_1_3_limpieza.md).
-- [ ] **Fase 1.4 Optimización de geometría.** Objetivo 20-40 k triángulos, LODs de 40 k / 15 k / 5 k y horneado a normal map del detalle perdido.
+- [x] **Fase 1.4 Optimización de geometría.** Objetivo 20-40 k triángulos, LODs de 40 k / 15 k / 5 k y horneado a normal map del detalle perdido.
+  - Resultado (28/09/2026):
+    - LOD0 de 39 196 triángulos (subdivisión nivel 1 aplicada); LOD1 de 14 997 y LOD2 de 4 998, simplificados desde el LOD0 (a menos de 3,5 mm y de 1 cm de él).
+    - Los tres comparten UVs, texturas y esqueleto.
+    - Pesos limitados a 4 influencias y normalizados: error de deformación de 2,2 mm de media, sin artefactos visibles; lo máximo, 13 cm en la punta de la caudal.
+    - No hace falta hornear: el normal map entregado ya reproduce el detalle del esculpido.
+  - Detalle: [docs/fase_1_4_geometria.md](docs/fase_1_4_geometria.md).
 - [ ] **Fase 1.5 Texturas PBR glTF.** baseColor, normal y ORM a 2K, ajuste de color a las referencias y máscara de "mojado" para Three.js.
-- [ ] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice.
+- [ ] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice (ya aplicado en la 1.4; queda revisar la caudal).
   - Columna: cadena de 12-16 huesos desde la cabeza hasta el pedúnculo.
   - Cabeza y mandíbula.
   - Pectorales.
