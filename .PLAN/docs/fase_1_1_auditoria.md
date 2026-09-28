@@ -13,7 +13,7 @@
   - Archivo con mucho material sobrante.
   - Saltos que empiezan en superficie y con poco giro.
   - Faltan `swim_fast`, `dive`, `pec_slap` y los eventos.
-- **Licencia sin confirmar.** No hay archivo de licencia; el readme solo dice "Thank you for purchasing this model!". El repo de GitHub es **público**: no se debe subir el .blend, las texturas ni el GLB hasta confirmar la licencia.
+- **Licencia confirmada por Roberto:** CGTrader, *Royalty Free License*. Permite usar y modificar el modelo dentro de un proyecto propio, pero prohíbe redistribuir los archivos en forma extraíble. Como el repo de GitHub es **público**, el .blend, las texturas y el GLB no se suben (ver apartado 1).
 
 ## 1. Archivos descargados
 
@@ -40,12 +40,26 @@ Texturas (`Textures\Textures\`):
 
 **Autor, fuente y licencia:**
 
-- No hay archivo de licencia ni URL de la tienda.
-- Indicios:
-  - El readme dice "Thank you for purchasing this model!", así que es un modelo comprado.
-  - Las rutas internas del .blend apuntan a `C:\Users\Diego\...` y a `D:\Models3dSell\Humpback\WhalESELLING\`, de modo que el autor es probablemente "Diego" y lo vende en alguna tienda.
-  - El zip se llama `humpback-whale-animated-<uuid>.zip`.
-- **Pendiente:** Roberto debe confirmar la tienda y el tipo de licencia (uso en tiempo real y en web, y si permite distribuir el GLB en un repo o web pública).
+| Dato | Valor |
+|---|---|
+| Tienda | CGTrader, "Humpback whale Animated OldModel Low-poly 3D model" |
+| Autor | `goldenztuff` (las rutas internas del .blend apuntan a un usuario "Diego") |
+| Compra | 28/09/2026, por Roberto (factura guardada fuera del repo, en `_Downloads\`) |
+| Licencia | **Royalty Free License** de CGTrader |
+
+Lo que implica la licencia, según los términos de CGTrader:
+
+- **Permite** usar el modelo, modificarlo y crear obras derivadas dentro de un producto propio ("Incorporated Product"): renders, vídeos, juegos y aplicaciones en tiempo real.
+- **Prohíbe** revender o redistribuir los archivos tal como se descargan, o de forma que se puedan extraer como archivo independiente.
+
+Consecuencias para este proyecto:
+
+- **Repo público:** no se suben el .blend, las texturas originales ni el GLB. Serían archivos del modelo descargables tal cual. `.gitignore` excluye ya `public/models/*` (salvo `.gitkeep`) y los binarios de Blender.
+- **Capturas en `docs`:** sí se pueden publicar, porque son imágenes renderizadas.
+- **Web desplegada (Fase 8.3):** una web Three.js tiene que servir el GLB al navegador, así que técnicamente se puede descargar. Es una **zona gris** de la licencia. Mitigaciones:
+  - Publicar solo la versión optimizada y comprimida (meshopt + KTX2), nunca los originales.
+  - No enlazar el archivo.
+  - Si hay dudas, consultarlo con CGTrader o con el autor antes de publicar.
 
 ## 2. Escena y unidades
 
@@ -239,10 +253,10 @@ Comparación con la Fase 1.7 y las referencias:
 
 ## 10. Recomendación para las fases 1.2-1.7
 
-1. **Licencia primero.**
-   - Confirmar la tienda y la licencia.
-   - Mientras tanto, los binarios (.blend, texturas, GLB) se quedan fuera del repo público. En `.gitignore` o con Git LFS en un repo privado; también cabe un GLB servido desde otro sitio.
-   - La Fase 1.8 ("copia a `public/models`") depende de esto.
+1. **Licencia (resuelto).**
+   - Es la Royalty Free de CGTrader.
+   - Los binarios del modelo quedan fuera del repo público mediante `.gitignore`.
+   - En la Fase 1.8, la copia a `public/models` sirve para el desarrollo local, pero no se versiona.
 2. **1.2 Copia de trabajo.**
    - Copiar a `_Blender\Claude modelo\Whale_opt.blend` solo `HumpbackWhale` y `HumpbackRig` con sus acciones `*_Anim`.
    - Copiar las texturas `WithJawBarnacles\2kText`, `Wed,Dry Roughness\2kText` y `BarbsTexture` junto al .blend, con rutas relativas.
@@ -251,7 +265,7 @@ Comparación con la Fase 1.7 y las referencias:
    - Borrar `ControlRig` y sus mallas, las acciones sin `_Anim`, los empties, las luces, la cámara, el agua y las imágenes sobrantes.
    - Quitar el grupo `shrinkwrap` y el atributo `Col` si no se usa.
    - Triangular los 20 n-gons.
-   - **Escala a 14 m (×0,7313)**: hay que escalar también las claves de posición de los huesos. La alternativa sin riesgo es escalar en Three.js.
+   - **Escala a 14 m (×0,7313) en Blender** (decidido por Roberto el 28/09/2026). Hay que aplicar la escala al objeto armature y a la malla, y escalar también las claves de posición de los huesos en todas las acciones. Después se valida que los clips se vean igual.
    - Orientación correcta para glTF: no requiere cambios.
 4. **1.4 Geometría.**
    - LOD0 = subdivisión nivel 1 aplicada (≈ 39 k tris).

@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.8 · 28/09/2026
+Versión 0.9 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -68,10 +68,10 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
     - Hasta 10 influencias por vértice.
     - Saltos sin ascenso y con poco giro.
     - Faltan `swim_fast`, `dive`, `pec_slap` y los eventos.
-  - Licencia sin confirmar (modelo comprado, sin archivo de licencia): no subir binarios al repo público hasta confirmarla.
+  - Licencia: CGTrader, *Royalty Free License* (autor `goldenztuff`). Permite usarlo y modificarlo dentro del proyecto, pero no redistribuir los archivos: el .blend, las texturas y el GLB no se suben al repo público (`.gitignore`).
   - Detalle: [docs/fase_1_1_auditoria.md](docs/fase_1_1_auditoria.md).
 - [ ] **Fase 1.2 Copia de trabajo.** `Whale_opt.blend` en `_Blender\Claude modelo`, con las texturas copiadas y rutas relativas (el original no se toca).
-- [ ] **Fase 1.3 Limpieza y normalización.** Aplicar transformaciones, escala en metros, ejes compatibles con glTF y eliminar datos sobrantes.
+- [ ] **Fase 1.3 Limpieza y normalización.** Aplicar transformaciones, escala en metros, ejes compatibles con glTF y eliminar datos sobrantes. Escala a 14 m (×0,7313) **en Blender**, incluidas las claves de posición de los huesos (decidido el 28/09/2026).
 - [ ] **Fase 1.4 Optimización de geometría.** Objetivo 20-40 k triángulos, LODs de 40 k / 15 k / 5 k y horneado a normal map del detalle perdido.
 - [ ] **Fase 1.5 Texturas PBR glTF.** baseColor, normal y ORM a 2K, ajuste de color a las referencias y máscara de "mojado" para Three.js.
 - [ ] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice.
