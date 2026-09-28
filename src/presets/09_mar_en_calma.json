@@ -1,0 +1,18 @@
+{
+  "nombre": "Mar en calma",
+  "descripcion": "Brisa de 4 m/s y mar de fondo largo y suave (0,8 m, 13 s): superficie casi de espejo.",
+  "valores": {
+    "cielo": {
+      "hour": 9.5
+    },
+    "nubes": {
+      "coverage": 0.2
+    },
+    "oceano": {
+      "windSpeed": 4,
+      "fetch": 60,
+      "swellHeight": 0.8,
+      "swellPeriod": 13
+    }
+  }
+}

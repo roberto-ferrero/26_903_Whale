@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.21 · 28/09/2026
+Versión 0.22 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -170,18 +170,23 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 4: Océano (superficie)
+## [x] Fase 4: Océano (superficie)
 
-- [ ] **Fase 4.1 Geometría.** Malla con LOD (clipmap o cascadas concéntricas centradas en la cámara) hasta el horizonte.
-- [ ] **Fase 4.2 Olas, prototipo.** Suma de ondas de Gerstner parametrizadas (amplitud, longitud, dirección, *steepness*) para validar el shading pronto.
-- [ ] **Fase 4.3 Olas, versión final.** Espectro FFT (JONSWAP + componente de mar de fondo/swell) en compute shaders con 2-3 cascadas de escala. Parámetros:
+- [x] **Fase 4.1 Geometría.** Malla con LOD (clipmap o cascadas concéntricas centradas en la cámara) hasta el horizonte.
+  - Hecho: una rejilla de 257² vértices hasta 25 km, con celdas de 0,35 m en el centro que crecen de forma geométrica. Cada vértice se ancla a una retícula del mundo con el paso de su celda (sin "nadar" ni grietas), lee un mip acorde a su celda y se curva con la Tierra.
+- [x] **Fase 4.2 Olas, prototipo.** Suma de ondas de Gerstner parametrizadas (amplitud, longitud, dirección, *steepness*) para validar el shading pronto.
+  - Hecho: `ocean/gerstner.js`, 8 ondas; queda como modo barato (2,0 ms por fotograma).
+- [x] **Fase 4.3 Olas, versión final.** Espectro FFT (JONSWAP + componente de mar de fondo/swell) en compute shaders con 2-3 cascadas de escala. Parámetros:
   - Viento: velocidad, dirección y *fetch*.
   - Mar de fondo (swell): altura, periodo, dirección y dispersión.
   - *Choppiness* (crestas afiladas) y escala de detalle.
-- [ ] **Fase 4.4 Shading.** Fresnel, reflejo del cielo y del sol, refracción con color según profundidad, *subsurface scattering* en crestas iluminadas por detrás, espuma de rompiente calculada con el jacobiano (whitecaps) y micro-normales para el brillo lejano.
-- [ ] **Fase 4.5 Consulta de altura.** Función para saber la altura del agua en cualquier punto (en CPU o con lectura de GPU) para la cámara, la ballena y las partículas.
+  - Hecho: `ocean/spectrum.js` + `ocean/fft.js`: JONSWAP/Mitsuyasu + swell, 3 cascadas de 256² (500, 97 y 19 m) y FFT en memoria compartida en 0,6 ms. Validado: la Hs coincide con la teoría y con Pierson-Moskowitz, y la GPU coincide con la CPU (error < 2·10⁻⁶ m).
+- [x] **Fase 4.4 Shading.** Fresnel, reflejo del cielo y del sol, refracción con color según profundidad, *subsurface scattering* en crestas iluminadas por detrás, espuma de rompiente calculada con el jacobiano (whitecaps) y micro-normales para el brillo lejano.
+  - Hecho: iluminación propia en TSL (PMREM del cielo y las nubes, GGX del sol, refracción con absorción según el espesor de agua, luz en las crestas y perspectiva aérea). La espuma, por jacobiano, está calibrada con la ley de Monahan.
+- [x] **Fase 4.5 Consulta de altura.** Función para saber la altura del agua en cualquier punto (en CPU o con lectura de GPU) para la cámara, la ballena y las partículas.
+  - Hecho: `ocean.heightAt(x, z)`, IFFT en CPU del mismo espectro (7 cm de error rms, sin latencia) y boyas de prueba.
 
-**Hecho cuando:** el mar se ve creíble desde varias alturas y los parámetros de viento y swell cambian el estado del mar de calma a mar agitado.
+**Hecho cuando:** el mar se ve creíble desde varias alturas y los parámetros de viento y swell cambian el estado del mar de calma a mar agitado. ✔ Cumplido el 28/09/2026 (presets 09 "Mar en calma" y 10 "Mar agitado"). Coste: 2,9 ms por fotograma a 720p. Detalle y capturas: [docs/fase_4_oceano.md](docs/fase_4_oceano.md).
 
 ---
 

@@ -232,6 +232,7 @@ export async function createClouds(renderer, scene) {
   });
 
   function apply() {
+    resetHistory = true;
     u.coverage.value = state.enabled ? state.coverage : 0;
     u.density.value = state.density;
     u.base.value = state.base;
@@ -255,6 +256,9 @@ export async function createClouds(renderer, scene) {
   const clearColor = new THREE.Color();
   let frame = 0;
   let simMoved = false;
+  let resetHistory = true; // la luz o los parámetros han cambiado: el historial ya no vale
+  const lastLight = new THREE.Vector4(0, -9, 0, 0);
+  const lightNow = new THREE.Vector4();
   apply();
 
   return {
@@ -275,6 +279,13 @@ export async function createClouds(renderer, scene) {
       u.sunDir.value.copy(lightDir);
       u.sunColor.value.copy(lightColor).multiplyScalar(lightIntensity);
       u.ambient.value.copy(ambientColor);
+      // un salto de hora (o de luz) mezclaría nubes de día y de noche: se descarta el historial
+      lightNow.set(lightDir.x, lightDir.y, lightDir.z, u.sunColor.value.r + u.sunColor.value.g + u.sunColor.value.b + ambientColor.r + ambientColor.g + ambientColor.b);
+      if (Math.abs(lightNow.w - lastLight.w) > 0.02 * Math.max(lastLight.w, 0.01)
+        || new THREE.Vector3(lightNow.x, lightNow.y, lightNow.z).dot(new THREE.Vector3(lastLight.x, lastLight.y, lastLight.z)) < Math.cos(0.3 * Math.PI / 180)) {
+        resetHistory = true;
+        lastLight.copy(lightNow);
+      }
       marchDome.position.copy(camera.position);
       composite.position.copy(camera.position);
     },
@@ -293,9 +304,10 @@ export async function createClouds(renderer, scene) {
       // quieta: acumula ~8 fotogramas; girando: reproyecta el historial y acumula ~4;
       // si la cámara se desplaza mucho o cambia la simulación (hora), empieza de cero
       const moved = !camera.matrixWorld.equals(lastCam);
-      const jumped = simMoved || lastCam.elements[15] === 0
+      const jumped = simMoved || resetHistory || lastCam.elements[15] === 0
         || camPos.setFromMatrixPosition(camera.matrixWorld).distanceTo(lastPos.setFromMatrixPosition(lastCam)) > 50;
       blend.value = !state.temporal || jumped ? 1 : moved ? 0.25 : 0.125;
+      resetHistory = false;
       reproj.invProj.value.copy(camera.projectionMatrixInverse);
       reproj.camRot.value.extractRotation(camera.matrixWorld);
       reproj.prevViewRot.value.extractRotation(lastCam).invert();

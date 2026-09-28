@@ -12,6 +12,12 @@
       "density": 0.03,
       "base": 900,
       "windSpeed": 25
+    },
+    "oceano": {
+      "windSpeed": 14,
+      "fetch": 250,
+      "swellHeight": 1.8,
+      "swellPeriod": 10
     }
   }
 }

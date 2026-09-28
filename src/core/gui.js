@@ -6,7 +6,7 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -143,6 +143,46 @@ export function createGui(m) {
   fClouds.add(cl, 'steps', 8, 128, 1).name('Calidad (pasos)').onChange(applyClouds);
   fClouds.add(cl, 'lightSteps', 1, 12, 1).name('Pasos de luz').onChange(applyClouds);
   fClouds.add(cl, 'maxDistance', 2000, 80000, 500).name('Distancia máx. (m)').onChange(applyClouds);
+
+  // ------------------------------------------------------------------ océano (Fase 4)
+  const fOcean = gui.addFolder('Océano');
+  const oc = ocean.state;
+  const oa = () => ocean.apply();
+  fOcean.add(oc, 'enabled').name('Océano').onChange(oa);
+  fOcean.add(oc, 'mode', ocean.modes).name('Olas').onChange(oa);
+  fOcean.add(oc, 'info').name('Estado del mar').listen().disable();
+  fOcean.add(oc, 'level', -3, 3, 0.01).name('Nivel (m)').onChange(oa);
+  fOcean.add(oc, 'choppiness', 0, 2, 0.01).name('Crestas afiladas (choppy)').onChange(oa);
+  const fWind = fOcean.addFolder('FFT · mar de viento');
+  fWind.add(oc, 'windSpeed', 0, 30, 0.1).name('Viento (m/s)').onFinishChange(oa);
+  fWind.add(oc, 'windDirection', 0, 360, 1).name('Viento hacia (° desde N)').onFinishChange(oa);
+  fWind.add(oc, 'fetch', 1, 1000, 1).name('Fetch (km)').onFinishChange(oa);
+  fWind.add(oc, 'windAlign', 0.1, 4, 0.05).name('Alineación con el viento').onFinishChange(oa);
+  fWind.add(oc, 'shortWaveCut', 0, 0.2, 0.005).name('Corte de ondas cortas (m)').onFinishChange(oa);
+  fWind.add(oc, 'seed', 1, 100, 1).name('Semilla').onFinishChange(oa);
+  const fSwell = fOcean.addFolder('FFT · mar de fondo (swell)');
+  fSwell.add(oc, 'swellHeight', 0, 6, 0.05).name('Altura significativa (m)').onFinishChange(oa);
+  fSwell.add(oc, 'swellPeriod', 4, 20, 0.1).name('Periodo (s)').onFinishChange(oa);
+  fSwell.add(oc, 'swellDirection', 0, 360, 1).name('Hacia (° desde N)').onFinishChange(oa);
+  fSwell.add(oc, 'swellSpread', 1, 100, 1).name('Concentración (s)').onFinishChange(oa);
+  const fGer = fOcean.addFolder('Gerstner (prototipo)');
+  fGer.add(oc, 'gAmplitude', 0, 3, 0.01).name('Amplitud (m)').onChange(oa);
+  fGer.add(oc, 'gWavelength', 2, 200, 0.5).name('Longitud de onda (m)').onChange(oa);
+  fGer.add(oc, 'gDirection', 0, 360, 1).name('Dirección (° desde N)').onChange(oa);
+  fGer.add(oc, 'gSpread', 0, 90, 1).name('Dispersión (°)').onChange(oa);
+  fGer.add(oc, 'gSteepness', 0, 1, 0.01).name('Afilado').onChange(oa);
+  const fLook = fOcean.addFolder('Aspecto');
+  fLook.addColor(oc, 'scatterColor').name('Color del agua (dispersión)').onChange(oa);
+  fLook.add(oc, 'clarity', 1, 60, 0.5).name('Claridad (m)').onChange(oa);
+  fLook.add(oc, 'sss', 0, 4, 0.05).name('Luz a través de las crestas').onChange(oa);
+  fLook.add(oc, 'roughness', 0.01, 0.4, 0.005).name('Rugosidad').onChange(oa);
+  fLook.add(oc, 'reflections', 0, 2, 0.01).name('Reflejo del cielo').onChange(oa);
+  fLook.add(oc, 'foam', 0, 3, 0.05).name('Espuma').onChange(oa);
+  fLook.add(oc, 'foamJacobian', 0, 1.2, 0.01).name('Umbral de espuma (jacobiano)').onChange(oa);
+  fLook.add(oc, 'foamDecay', 0.05, 5, 0.05).name('Disipación de la espuma (1/s)').onChange(oa);
+  fLook.add(oc, 'haze', 1, 80, 0.5).name('Visibilidad horizontal (km)').onChange(oa);
+  fLook.add(oc, 'refraction').name('Refracción (ver bajo el agua)').onChange(oa);
+  fOcean.add(oc, 'buoys').name('Boyas de prueba (altura en CPU)').onChange(oa);
 
   // ------------------------------------------------------------------ iluminación y ambiente
   const fLight = gui.addFolder('Iluminación (sin cielo: manual)');

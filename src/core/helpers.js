@@ -8,11 +8,11 @@ import { positionWorld, uniform } from 'three/tsl';
  */
 export function createHelpers(scene, sun, whale, lodState) {
   const state = {
-    grid: true,
+    grid: false, // con el océano, la rejilla se vería a través del agua
     gridHeight: -30, // fondo marino de referencia
     axes: false,
     box: false,
-    water: true,
+    water: false, // plano provisional de la Fase 2 (el océano de la Fase 4 lo sustituye)
     waterLevel: -0.3, // plano de agua del .blend original (−0,41 m) escalado a 14 m
     waterOpacity: 0.9,
     waterColor: '#1c4a66',

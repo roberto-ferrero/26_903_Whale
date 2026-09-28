@@ -34,7 +34,7 @@ export async function createViewer(container) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1d2b3a);
 
-  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 2000);
+  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 60000); // océano hasta el horizonte
   camera.position.set(16, 5, 12);
 
   const controls = new OrbitControls(camera, renderer.domElement);

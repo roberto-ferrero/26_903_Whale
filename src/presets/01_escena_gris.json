@@ -1,12 +1,19 @@
 {
   "nombre": "Escena gris (placeholder)",
-  "descripcion": "Escena placeholder de la Fase 2: sin cielo físico ni nubes, fondo gris y niebla.",
+  "descripcion": "Escena placeholder de la Fase 2: sin cielo físico, nubes ni océano; fondo gris, plano de agua y rejilla.",
   "valores": {
     "cielo": {
       "enabled": false
     },
     "nubes": {
       "enabled": false
+    },
+    "oceano": {
+      "enabled": false
+    },
+    "ayudas": {
+      "water": true,
+      "grid": true
     }
   }
 }

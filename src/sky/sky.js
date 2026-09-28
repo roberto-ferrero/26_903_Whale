@@ -147,6 +147,7 @@ export function createSky(viewer, extraSkyObjects = []) {
   let envRT = null;
   let lastEnvSun = new THREE.Vector3(0, -2, 0);
   let lastEnvTime = -1;
+  let envPending = true;
   const fallbackEnv = scene.environment;
 
   // ------------------------------------------------------------------ cálculo
@@ -278,15 +279,10 @@ export function createSky(viewer, extraSkyObjects = []) {
     atm.dome.visible = atm.envDome.visible = state.enabled && physical;
     moonLight.visible = state.enabled;
 
-    // entorno: se regenera si el sol se ha movido o cada cierto tiempo si hay animación
+    // entorno: se regenera si el sol se ha movido o cada cierto tiempo si hay animación; se hace
+    // en renderEnv(), después de que las nubes reciban la luz de este fotograma
     if (state.enabled && (sunDir.angleTo(lastEnvSun) > 0.5 * DEG || (state.animate && clockTime - lastEnvTime > 2))) {
-      envSky.position.set(0, 0, 0);
-      const rt = pmrem.fromScene(envScene, 0, 0.1, 5000);
-      if (envRT) envRT.dispose();
-      envRT = rt;
-      scene.environment = rt.texture;
-      lastEnvSun.copy(sunDir);
-      lastEnvTime = clockTime;
+      envPending = true;
     }
 
     // lecturas
@@ -320,10 +316,24 @@ export function createSky(viewer, extraSkyObjects = []) {
     update(0);
   }
 
+  /** Regenera el mapa de entorno si hace falta (llamar después de actualizar las nubes). */
+  function renderEnv() {
+    if (!envPending || !state.enabled) return;
+    envPending = false;
+    envSky.position.set(0, 0, 0);
+    const rt = pmrem.fromScene(envScene, 0, 0.1, 5000);
+    if (envRT) envRT.dispose();
+    envRT = rt;
+    scene.environment = rt.texture;
+    lastEnvSun.copy(sunDir);
+    lastEnvTime = clockTime;
+  }
+
   return {
     state,
     info,
     light,
+    renderEnv,
     models: SKY_MODELS,
     atmosphere: atm,
     sunDir,

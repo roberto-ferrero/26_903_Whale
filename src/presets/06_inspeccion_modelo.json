@@ -19,6 +19,9 @@
     },
     "nubes": {
       "enabled": false
+    },
+    "oceano": {
+      "enabled": false
     }
   }
 }

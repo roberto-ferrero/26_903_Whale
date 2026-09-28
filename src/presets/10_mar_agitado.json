@@ -1,0 +1,21 @@
+{
+  "nombre": "Mar agitado",
+  "descripcion": "Viento de 17 m/s con 400 km de fetch y mar de fondo de 2 m: olas de ~6 m y cabrillas (espuma).",
+  "valores": {
+    "cielo": {
+      "hour": 15.5,
+      "turbidity": 4
+    },
+    "nubes": {
+      "coverage": 0.65,
+      "type": 0.35
+    },
+    "oceano": {
+      "windSpeed": 17,
+      "fetch": 400,
+      "swellHeight": 2,
+      "swellPeriod": 12,
+      "choppiness": 1.3
+    }
+  }
+}
