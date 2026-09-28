@@ -10,7 +10,7 @@ import { createAnchor } from './whale/anchor.js';
 import { createBreach } from './whale/breach.js';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
-const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.png`;
+const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.ktx2`;
 
 const container = document.querySelector('#app');
 const message = document.createElement('div');
@@ -26,9 +26,9 @@ try {
 } catch (err) {
   console.error(err);
   message.innerHTML = 'No se pudo cargar <code>public/models/whale.glb</code>.<br>'
-    + 'El modelo no se versiona (licencia de CGTrader): expórtalo con '
-    + '<code>_Blender/scripts/export_glb.py</code> y cópialo a <code>public/models/</code> '
-    + 'junto con <code>whale_wet_2k.png</code>.';
+    + 'El modelo no se versiona (licencia de CGTrader): genéralo con el proceso de '
+    + '<code>.PLAN/docs/fase_1_8_exportacion.md</code> y copia <code>whale.glb</code> y '
+    + '<code>whale_wet_2k.ktx2</code> a <code>public/models/</code>.';
   throw err;
 }
 message.remove();

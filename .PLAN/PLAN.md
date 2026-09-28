@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.17 · 28/09/2026
+Versión 0.18 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -56,7 +56,7 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [~] Fase 1: Modelo de la ballena en Blender
+## [x] Fase 1: Modelo de la ballena en Blender
 
 - [x] **Fase 1.1 Auditoría del modelo descargado.** Mallas, triángulos, materiales, texturas, esqueleto, animaciones, escala, orientación y licencia; comparación con las imágenes de referencia.
   - Resultado (28/09/2026): el modelo sirve como base.
@@ -120,21 +120,19 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
     - Validado: en el ápice, entre el 72 % y el 79 % del cuerpo fuera del agua (referencias: 60-80 %) y 1,65 s en el aire.
     - `dive` y `pec_slap` (opcionales) quedan pendientes.
   - Detalle: [docs/fase_1_7_animaciones.md](docs/fase_1_7_animaciones.md).
-- [~] **Fase 1.8 Exportación y validación.** GLB (meshopt + KTX2) en `_Blender\Claude modelo` y copia a `public/models`; validación en un visor Three.js.
-  - Hecho (28/09/2026):
-    - Exportación **preliminar**, con PNG y sin compresión (18,9 MB): 3 LODs, 1 esqueleto de 47 huesos, 7 clips, `alphaMode: MASK` en las "barbs" y `wet_map` en `extras`.
-    - Visor Three.js (WebGPU) con ayudas y panel lil-gui: clips, LOD, mojado, iluminación, cámara.
-    - Detalle: [docs/visor_modelo.md](docs/visor_modelo.md).
-    - Re-exportado tras la 1.7 (19,1 MB, 10 clips, eventos de `breach_body` en `extras`).
+- [x] **Fase 1.8 Exportación y validación.** GLB (meshopt + KTX2) en `_Blender\Claude modelo` y copia a `public/models`; validación en un visor Three.js.
+  - Resultado (28/09/2026):
+    - **GLB final de 10,1 MB** (antes 19,6): malla y animación con meshopt (0,5 MB) y texturas **KTX2 UASTC**, que en la GPU son BC7 (≈ 27 MB frente a ≈ 107 MB con PNG). Mapa de mojado en KTX2 (2,0 MB).
+    - UASTC también para el color: ETC1S teñía de verde la piel oscura.
     - Tangentes MikkTSpace exportadas.
-    - **Compresión meshopt** (`gltfpack -cc`): geometría y animación en 0,5 MB, 17,0 MB en total.
-    - **Validación** con el validador de Khronos (0 errores) y comprobaciones propias (`npm run validate:model`).
-    - Visor con `MeshoptDecoder` y `KTX2Loader`. Eventos copiados en el hueso `Root`, porque gltfpack quita los extras de las animaciones.
-    - Detalle: [docs/fase_1_8_exportacion.md](docs/fase_1_8_exportacion.md).
-  - Pendiente: **texturas KTX2** (el 96 % del tamaño); a la espera de permiso para descargar el `gltfpack` nativo.
+    - Eventos copiados en el hueso `Root`, porque gltfpack quita los extras de las animaciones.
+    - Validador de Khronos con **0 errores** y 10 de 10 comprobaciones del proyecto.
+    - Visor con `KTX2Loader` y `MeshoptDecoder`, probado con la secuencia del salto.
+    - Proceso reproducible: `npm run pack:model` (gltfpack nativo 1.3) y `npm run validate:model`.
+  - Detalle: [docs/fase_1_8_exportacion.md](docs/fase_1_8_exportacion.md) y [docs/visor_modelo.md](docs/visor_modelo.md).
 - [ ] **Fase 1.9 (opcional) Refinado.** Esculpido y texturas.
 
-**Hecho cuando:** el GLB carga en Three.js y reproduce los clips con *crossfade* sin artefactos en la piel.
+**Hecho cuando:** el GLB carga en Three.js y reproduce los clips con *crossfade* sin artefactos en la piel. ✔ Cumplido el 28/09/2026. La 1.9 (refinado, opcional) y `dive`/`pec_slap` (1.7, opcionales) quedan pendientes.
 
 ---
 

@@ -6,7 +6,7 @@
 
 - La ballena de las fases 1.1-1.5 ya se ve en el navegador: `npm run dev` y abrir http://localhost:5173.
 - Incluye los 3 LODs, los 7 clips de animación, el material de piel con **mojado** en TSL, ayudas visuales y un panel lil-gui con las opciones.
-- El GLB sale de una **exportación preliminar** (parte de la Fase 1.8): texturas PNG y sin compresión (18,9 MB). La versión final con KTX2 y compresión de malla llegará en la 1.8.
+- El GLB es el **final de la Fase 1.8**: 10,1 MB, con malla meshopt y texturas KTX2 (UASTC). El mapa de mojado es `whale_wet_2k.ktx2`.
 - El modelo **no se versiona** (licencia de CGTrader): `public/models/*` está en `.gitignore`. Hay que generarlo y copiarlo a mano (ver abajo).
 
 ## Cómo ponerlo en marcha
@@ -17,20 +17,21 @@
      --python "_Blender\scripts\export_glb.py" -- "_Blender\Claude modelo\export\whale.glb"
    ```
    El script también copia `whale_wet_2k.png` junto al GLB.
-2. Copiar `whale.glb` y `whale_wet_2k.png` a `_Repos\26_903_Whale\public\models\`.
-3. En `_Repos\26_903_Whale`, ejecutar `npm run dev`.
+2. Empaquetar para la web (meshopt + KTX2) directamente en `public/models/`: `npm run pack:model`. Necesita el `gltfpack` nativo en `_Blender\tools\gltfpack\` (ver la Fase 1.8).
+3. Validar el resultado: `npm run validate:model`.
+4. En `_Repos\26_903_Whale`, ejecutar `npm run dev`.
 
-Si falta el GLB, el visor lo indica en pantalla con estas mismas instrucciones.
+Si falta el GLB, el visor lo indica en pantalla y remite a la documentación de la Fase 1.8.
 
 ## Contenido del GLB exportado
 
 | Elemento | Valor |
 |---|---|
 | Mallas | `Whale_LOD0` (39 196 tris), `Whale_LOD1` (14 997), `Whale_LOD2` (4 998); 3 primitivas cada una (piel, córnea, barbs) |
-| Esqueleto | 1 skin de 47 huesos compartido por los 3 LODs; 4 influencias por vértice |
-| Animaciones | `Idle`, `JumpLeft`, `JumpRight`, `JumpStraight`, `MouthOpen`, `Swim1`, `Swim2` (141 canales cada una) |
+| Esqueleto | 1 skin de 48 huesos (47 + `Root`, Fase 1.6) compartido por los 3 LODs; 4 influencias por vértice |
+| Animaciones | `swim_idle`, `swim_fast`, `breach_body` (Fase 1.7) y los originales `Idle`, `JumpLeft`, `JumpRight`, `JumpStraight`, `MouthOpen`, `Swim1`, `Swim2` |
 | Materiales | `Humpback`: baseColor, ORM (metallicRoughness + occlusion), normal, `KHR_materials_specular`, `extras.wet_map` · `Barbs`: `alphaMode: MASK` · `Cornea`: `KHR_materials_transmission` |
-| Tamaño | 18,9 MB (texturas PNG embebidas) |
+| Tamaño | 10,1 MB (meshopt y texturas KTX2 UASTC; antes 18,9 MB con PNG) |
 
 El exportador avisa de que la imagen ORM se usa en dos nodos. Es lo esperado: una sola textura sirve para `metallicRoughnessTexture` y para `occlusionTexture`.
 
