@@ -44,6 +44,8 @@ El exportador avisa de que la imagen ORM se usa en dos nodos. Es lo esperado: un
 | `src/core/stats.js` | Panel de FPS, draw calls, triángulos, LOD activo y tiempo del clip |
 | `src/core/gui.js` | Panel lil-gui (en español) y guardar/restablecer ajustes en `localStorage` |
 | `src/whale/whale.js` | Carga del GLB, paso a materiales de nodos, mojado en TSL, control de LOD y de animaciones |
+| `src/whale/skeletonHelpers.js` | Ayudas del esqueleto: líneas, articulaciones por grupo, ejes, nombres, hueso seleccionado y opacidad del cuerpo (Fase 1.6) |
+| `src/whale/anchor.js` | Punto de anclaje: marcador, estela, línea al agua, lecturas y cámara que lo sigue (Fase 1.6) |
 
 Detalles técnicos:
 
@@ -51,6 +53,8 @@ Detalles técnicos:
 - **Mojado en la piel:** `roughnessNode = mix(ORM.g, WET.r, mojado · (0,6 + 0,4 · WET.g))` y el color se oscurece hasta un 12 % (ajustable).
 - **LOD manual.** Se usa la distancia de la cámara al centro de la ballena (por defecto LOD1 a 40 m y LOD2 a 120 m) y se muestra un solo LOD. No se usa `THREE.LOD`, porque reparentar mallas con piel que comparten esqueleto da problemas.
 - **Mallas con piel** con `frustumCulled = false`: su caja estática no sigue a la animación, y en los saltos la ballena desaparecería al salir de ella.
+- **Nombres de huesos.** GLTFLoader los limpia (`Fin.L.001` → `FinL001`); el original está en `userData.name`, y es el que muestran el panel y las etiquetas.
+- **Depuración.** Con `npm run dev`, la consola del navegador tiene `window.whaleViewer` (visor, ballena, animación, LOD, esqueleto, anclaje).
 - **Tamaño de la ventana.** El bucle comprueba el tamaño cada fotograma (`ensureSize`). Si la página se carga con la ventana oculta no siempre llega un `resize`, y el canvas se quedaba en 0×0 (me pasó en las pruebas).
 
 ## Panel de opciones
@@ -60,7 +64,9 @@ Detalles técnicos:
 | **Animación** | Clip, reproducir/pausa, velocidad (0-3×), bucle, fundido entre clips (s), tiempo (arrastrar para moverse por el clip), pose de reposo |
 | **Modelo** | LOD (Auto, LOD0, LOD1, LOD2), distancias de cambio, **mojado** (0-1), oscurecer al mojar, normal map on/off e intensidad, intensidad de AO, alambre, pelos ("barbs") on/off |
 | **Iluminación** | Tone mapping (AgX, ACES, Neutral, Reinhard, ninguno), exposición, luz de entorno, sol (intensidad, color, elevación, azimut), luz hemisférica, color de fondo |
-| **Ayudas** | Rejilla de 1 m y su altura, ejes, esqueleto, caja envolvente, plano de agua (nivel y opacidad), dirección del sol, persona de 1,8 m, estadísticas |
+| **Esqueleto** | Líneas, articulaciones (coloreadas por grupo, vistas a través del cuerpo) y su tamaño, ejes de cada hueso, nombres (ninguno, todos o por grupo), opacidad del cuerpo · Hueso seleccionado: resaltar y leer grupo, padre, posición y rotación |
+| **Punto de anclaje** | Hueso (`Root` = centro de masas, `MasterBone`, `Head`, `Spine.007`), marcador y ejes, estela y su longitud, borrar estela, línea al agua, cámara que lo sigue, centrar cámara, lecturas de posición y altura sobre el agua |
+| **Ayudas** | Rejilla de 1 m y su altura, ejes, caja envolvente, plano de agua (nivel y opacidad), dirección del sol, persona de 1,8 m, estadísticas |
 | **Cámara** | Vistas (tres cuartos, lateral, frontal, superior, inferior, cabeza, cola), campo de visión, giro automático y su velocidad |
 | Raíz | Guardar ajustes y Restablecer |
 

@@ -5,6 +5,8 @@ import { createHelpers } from './core/helpers.js';
 import { createStats } from './core/stats.js';
 import { createGui } from './core/gui.js';
 import { loadWhale, createLodController, createAnimationController } from './whale/whale.js';
+import { createSkeletonHelpers } from './whale/skeletonHelpers.js';
+import { createAnchor } from './whale/anchor.js';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
 const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.png`;
@@ -34,8 +36,13 @@ viewer.scene.add(whale.root);
 const lod = createLodController(whale);
 const anim = createAnimationController(whale);
 const helpers = createHelpers(viewer.scene, viewer.sun, whale, lod.state);
+const skeleton = createSkeletonHelpers(viewer.scene, whale);
+const anchor = createAnchor(viewer.scene, whale, viewer.camera, viewer.controls, helpers.state);
 const stats = createStats(container, viewer.backend);
-createGui({ viewer, whale, anim, lod, helpers, stats });
+createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor, stats });
+
+// depuración desde la consola del navegador (solo en `npm run dev`)
+if (import.meta.env.DEV) window.whaleViewer = { THREE, viewer, whale, anim, lod, helpers, skeleton, anchor };
 
 const timer = new THREE.Timer();
 viewer.renderer.setAnimationLoop((time) => {
@@ -44,9 +51,12 @@ viewer.renderer.setAnimationLoop((time) => {
   anim.update(dt);
   lod.update(viewer.camera);
   helpers.update();
+  skeleton.update();
+  anchor.update();
   viewer.controls.update(dt);
   if (!viewer.ensureSize()) return; // ventana oculta: evita texturas de tamaño 0
   viewer.renderer.render(viewer.scene, viewer.camera);
+  viewer.labelRenderer.render(viewer.scene, viewer.camera);
   stats.update(
     viewer.renderer,
     `LOD${lod.state.active} (${whale.triangles[lod.state.active].toLocaleString('es-ES')} tris, ${lod.state.distance.toFixed(0)} m)`

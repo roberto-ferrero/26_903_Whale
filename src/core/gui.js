@@ -14,13 +14,13 @@ const CAMERA_VIEWS = {
 };
 
 /** Panel lil-gui con todas las opciones del visor. */
-export function createGui({ viewer, whale, anim, lod, helpers, stats }) {
+export function createGui({ viewer, whale, anim, lod, helpers, skeleton, anchor, stats }) {
   const { renderer, scene, camera, controls, sun, sunParams, updateSun, hemi } = viewer;
   const gui = new GUI({ title: 'Ballena jorobada · visor' });
 
   // ------------------------------------------------------------------ animación
   const fAnim = gui.addFolder('Animación');
-  fAnim.add(anim.state, 'clip', anim.names).name('Clip').onChange((name) => anim.play(name));
+  fAnim.add(anim.state, 'clip', anim.names).name('Clip').listen().onChange((name) => anim.play(name));
   fAnim.add(anim.state, 'playing').name('Reproducir');
   fAnim.add(anim.state, 'speed', 0, 3, 0.05).name('Velocidad');
   fAnim.add(anim.state, 'loop').name('Bucle').onChange(() => anim.applyLoop());
@@ -95,7 +95,6 @@ export function createGui({ viewer, whale, anim, lod, helpers, stats }) {
   fHelp.add(h, 'grid').name('Rejilla (1 m)').onChange(helpers.apply);
   fHelp.add(h, 'gridHeight', -10, 5, 0.1).name('Altura rejilla (m)').onChange(helpers.apply);
   fHelp.add(h, 'axes').name('Ejes (3 m)').onChange(helpers.apply);
-  fHelp.add(h, 'skeleton').name('Esqueleto').onChange(helpers.apply);
   fHelp.add(h, 'box').name('Caja envolvente').onChange(helpers.apply);
   fHelp.add(h, 'water').name('Plano de agua').onChange(helpers.apply);
   fHelp.add(h, 'waterLevel', -10, 10, 0.05).name('Nivel del agua (m)').onChange(helpers.apply);
@@ -104,6 +103,39 @@ export function createGui({ viewer, whale, anim, lod, helpers, stats }) {
   fHelp.add(h, 'human').name('Persona 1,8 m').onChange(helpers.apply);
   const statsState = { visible: true };
   fHelp.add(statsState, 'visible').name('Estadísticas').onChange((v) => { stats.el.style.display = v ? '' : 'none'; });
+
+  // ------------------------------------------------------------------ esqueleto
+  const fSkel = gui.addFolder('Esqueleto');
+  const sk = skeleton.state;
+  fSkel.add(sk, 'lines').name('Líneas').onChange(skeleton.apply);
+  fSkel.add(sk, 'joints').name('Articulaciones').onChange(skeleton.apply);
+  fSkel.add(sk, 'jointSize', 0.02, 0.3, 0.01).name('Tamaño articulación (m)');
+  fSkel.add(sk, 'axes').name('Ejes de cada hueso').onChange(skeleton.apply);
+  fSkel.add(sk, 'axesSize', 0.05, 1, 0.05).name('Tamaño de ejes (m)').onChange(skeleton.apply);
+  fSkel.add(sk, 'labels', skeleton.labelGroups).name('Nombres').onChange(skeleton.apply);
+  fSkel.add(sk, 'bodyOpacity', 0.05, 1, 0.01).name('Opacidad del cuerpo').onChange(skeleton.apply);
+  const fSel = fSkel.addFolder('Hueso seleccionado');
+  fSel.add(sk, 'selected', skeleton.names).name('Hueso');
+  fSel.add(sk, 'showSelected').name('Resaltar').onChange(skeleton.apply);
+  fSel.add(sk.info, 'group').name('Grupo').listen().disable();
+  fSel.add(sk.info, 'parent').name('Padre').listen().disable();
+  fSel.add(sk.info, 'worldPos').name('Posición (mundo)').listen().disable();
+  fSel.add(sk.info, 'localRot').name('Rotación local').listen().disable();
+
+  // ------------------------------------------------------------------ punto de anclaje
+  const fAnchor = gui.addFolder('Punto de anclaje');
+  const an = anchor.state;
+  fAnchor.add(an, 'bone', anchor.choices).name('Hueso de anclaje').onChange(() => anchor.clearTrail());
+  fAnchor.add(an, 'marker').name('Marcador y ejes').onChange(anchor.apply);
+  fAnchor.add(an, 'size', 0.05, 1, 0.01).name('Tamaño del marcador');
+  fAnchor.add(an, 'trail').name('Estela').onChange((v) => { if (!v) anchor.clearTrail(); anchor.apply(); });
+  fAnchor.add(an, 'trailLength', 50, 2000, 10).name('Longitud estela (puntos)');
+  fAnchor.add({ clear: () => anchor.clearTrail() }, 'clear').name('Borrar estela');
+  fAnchor.add(an, 'dropLine').name('Línea al agua').onChange(anchor.apply);
+  fAnchor.add(an, 'follow').name('Cámara lo sigue');
+  fAnchor.add({ focus: () => anchor.focus() }, 'focus').name('Centrar cámara aquí');
+  fAnchor.add(an, 'position').name('Posición').listen().disable();
+  fAnchor.add(an, 'heightOverWater').name('Altura sobre el agua').listen().disable();
 
   // ------------------------------------------------------------------ cámara
   const fCam = gui.addFolder('Cámara');
@@ -142,6 +174,8 @@ export function createGui({ viewer, whale, anim, lod, helpers, stats }) {
 
   fLight.close();
   fHelp.close();
+  fSkel.close();
+  fAnchor.close();
   fCam.close();
   return gui;
 }

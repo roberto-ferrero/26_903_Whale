@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 
 /**
- * Ayudas visuales: rejilla, ejes, esqueleto, caja de la malla visible, plano de agua,
+ * Ayudas visuales: rejilla, ejes, caja de la malla visible, plano de agua,
  * luz del sol y una figura humana de 1,8 m como referencia de escala.
  */
 export function createHelpers(scene, sun, whale, lodState) {
@@ -9,7 +9,6 @@ export function createHelpers(scene, sun, whale, lodState) {
     grid: true,
     gridHeight: -3,
     axes: false,
-    skeleton: false,
     box: false,
     water: false,
     waterLevel: -0.3, // plano de agua del .blend original (−0,41 m) escalado a 14 m
@@ -23,9 +22,6 @@ export function createHelpers(scene, sun, whale, lodState) {
 
   const axes = new THREE.AxesHelper(3);
   scene.add(axes);
-
-  const skeleton = new THREE.SkeletonHelper(whale.root);
-  scene.add(skeleton);
 
   const box = new THREE.Box3Helper(new THREE.Box3(), 0xffcc33);
   scene.add(box);
@@ -54,7 +50,6 @@ export function createHelpers(scene, sun, whale, lodState) {
     grid.visible = state.grid;
     grid.position.y = state.gridHeight;
     axes.visible = state.axes;
-    skeleton.visible = state.skeleton;
     box.visible = state.box;
     water.visible = state.water;
     water.position.y = state.waterLevel;

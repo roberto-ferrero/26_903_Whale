@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.14 · 28/09/2026
+Versión 0.15 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -99,7 +99,12 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
     - Ajuste de color leve: negros menos azules y algo más claros, y solo el 35 % de la AO en el color; el resto, en el ORM.
     - Materiales reconstruidos para el exportador glTF.
   - Detalle: [docs/fase_1_5_texturas.md](docs/fase_1_5_texturas.md).
-- [ ] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice (ya aplicado en la 1.4; queda revisar la caudal).
+- [x] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice (ya aplicado en la 1.4; queda revisar la caudal).
+  - Resultado (28/09/2026):
+    - Se mantiene el esqueleto: 47 huesos deformantes, simétricos, todos con movimiento salvo la dorsal y dos segmentos de pectoral; se conservan todos.
+    - Nuevo hueso **`Root`** en el centro de masas (39,5 % desde el morro; 26,8 m³ ≈ 27 t) como **punto de anclaje** para la trayectoria del salto. No altera las animaciones (0,013 mm).
+    - Visor con ayudas de esqueleto y de punto de anclaje.
+  - Detalle: [docs/fase_1_6_rig.md](docs/fase_1_6_rig.md).
   - Columna: cadena de 12-16 huesos desde la cabeza hasta el pedúnculo.
   - Cabeza y mandíbula.
   - Pectorales.

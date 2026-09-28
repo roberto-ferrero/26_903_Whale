@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 
 export const TONE_MAPPINGS = {
   AgX: THREE.AgXToneMapping,
@@ -22,6 +23,12 @@ export async function createViewer(container) {
   renderer.toneMappingExposure = 1;
   container.appendChild(renderer.domElement);
   await renderer.init();
+
+  // etiquetas HTML (nombres de huesos) sobre el canvas
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.domElement.className = 'labels';
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  container.appendChild(labelRenderer.domElement);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1d2b3a);
@@ -55,6 +62,7 @@ export async function createViewer(container) {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
   };
   window.addEventListener('resize', onResize);
 
@@ -70,5 +78,5 @@ export async function createViewer(container) {
 
   const backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL2 (fallback)';
 
-  return { renderer, scene, camera, controls, sun, sunParams, updateSun, hemi, backend, ensureSize };
+  return { renderer, labelRenderer, scene, camera, controls, sun, sunParams, updateSun, hemi, backend, ensureSize };
 }
