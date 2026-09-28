@@ -1,8 +1,10 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.7 · 28/09/2026
+Versión 0.8 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
+
+Documentación: cada punto terminado lleva aquí un resumen breve; el detalle está en `.PLAN\docs`.
 
 ## Objetivo
 
@@ -54,9 +56,20 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 1: Modelo de la ballena en Blender
+## [~] Fase 1: Modelo de la ballena en Blender
 
-- [ ] **Fase 1.1 Auditoría del modelo descargado.** Mallas, triángulos, materiales, texturas, esqueleto, animaciones, escala, orientación y licencia; comparación con las imágenes de referencia.
+- [x] **Fase 1.1 Auditoría del modelo descargado.** Mallas, triángulos, materiales, texturas, esqueleto, animaciones, escala, orientación y licencia; comparación con las imágenes de referencia.
+  - Resultado (28/09/2026): el modelo sirve como base.
+    - Malla de juego de 9,7 k triángulos (≈ 39 k con subdivisión nivel 1) y esqueleto de 47 huesos.
+    - 7 clips horneados a 24 fps: nado, reposo, 3 saltos y boca abierta. Texturas 1K-4K con variantes de piel y rugosidad mojada/seca. Esculpido de 857 k triángulos para hornear.
+  - A corregir:
+    - Texturas con rutas rotas.
+    - Escala de 19,1 m (en vez de ≈ 14 m) y pectorales algo cortas.
+    - Hasta 10 influencias por vértice.
+    - Saltos sin ascenso y con poco giro.
+    - Faltan `swim_fast`, `dive`, `pec_slap` y los eventos.
+  - Licencia sin confirmar (modelo comprado, sin archivo de licencia): no subir binarios al repo público hasta confirmarla.
+  - Detalle: [docs/fase_1_1_auditoria.md](docs/fase_1_1_auditoria.md).
 - [ ] **Fase 1.2 Copia de trabajo.** `Whale_opt.blend` en `_Blender\Claude modelo`, con las texturas copiadas y rutas relativas (el original no se toca).
 - [ ] **Fase 1.3 Limpieza y normalización.** Aplicar transformaciones, escala en metros, ejes compatibles con glTF y eliminar datos sobrantes.
 - [ ] **Fase 1.4 Optimización de geometría.** Objetivo 20-40 k triángulos, LODs de 40 k / 15 k / 5 k y horneado a normal map del detalle perdido.
