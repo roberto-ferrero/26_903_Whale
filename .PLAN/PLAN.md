@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.10 · 28/09/2026
+Versión 0.11 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -21,7 +21,7 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 | Área | Elección | Motivo |
 |---|---|---|
 | Proyecto | Vite + JavaScript (ES modules, sin TypeScript) | Arranque rápido y HMR, sin paso de compilación de tipos |
-| Render | Three.js `WebGPURenderer` + TSL (con *fallback* WebGL2) | Compute shaders para la FFT del océano, partículas en GPU y nubes |
+| Render | Three.js `WebGPURenderer` + TSL; *fallback* WebGL2 al final (Fase 8.5) | Compute shaders para la FFT del océano, partículas en GPU y nubes |
 | UI de parámetros | lil-gui (o Tweakpane) | Ajuste en vivo y presets en JSON |
 | Modelo 3D | Blender 5.1.1 → glTF/GLB (meshopt + texturas KTX2) | Formato nativo de Three.js con esqueleto y animaciones |
 | Animación | `AnimationMixer` con *crossfade* entre clips | Mezcla nadar ↔ saltar |
@@ -31,7 +31,7 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 ## [~] Fase 0: Preparación
 
 - [x] **Fase 0.1** Decisiones tomadas (28/09/2026):
-  - Especie: ballena jorobada. Renderer: WebGPU con fallback WebGL2. Objetivo: tiempo real en navegador de escritorio. Vite + JavaScript (sin TypeScript, decidido el 28/09/2026).
+  - Especie: ballena jorobada. Renderer: WebGPU como objetivo principal. Durante el desarrollo se trabaja y valida solo en WebGPU; el fallback a WebGL se hace al final, en la Fase 8.5 (decidido el 28/09/2026). Objetivo: tiempo real en navegador de escritorio. Vite + JavaScript (sin TypeScript, decidido el 28/09/2026).
   - Modelo: se parte del modelo descargado y se crea una versión optimizada; el trabajo en Blender se automatiza con scripts bpy (Blender 5.1.1).
   - Rutas:
     - Plan: `D:\Trabajo\Proyectos_LEGION\26_903_Whale\_Repos\26_903_Whale\.PLAN` (con las referencias en `.PLAN\referencias`)
@@ -77,7 +77,14 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
     - El esculpido de alta queda aparte, en `Whale_bake_src.blend`.
   - Verificado: los vértices deformados coinciden con el original en 35 poses (diferencia 0 m).
   - Detalle: [docs/fase_1_2_copia_trabajo.md](docs/fase_1_2_copia_trabajo.md).
-- [ ] **Fase 1.3 Limpieza y normalización.** Aplicar transformaciones, escala en metros, ejes compatibles con glTF y eliminar datos sobrantes. Escala a 14 m (×0,7313) **en Blender**, incluidas las claves de posición de los huesos (decidido el 28/09/2026).
+- [x] **Fase 1.3 Limpieza y normalización.** Aplicar transformaciones, escala en metros, ejes compatibles con glTF y eliminar datos sobrantes. Escala a 14 m (×0,7313) **en Blender**, incluidas las claves de posición de los huesos (decidido el 28/09/2026).
+  - Resultado (28/09/2026):
+    - La ballena mide 14,00 m: se escalaron la malla, el reposo de los huesos y las 107 019 claves de posición, y también la alta poligonal para hornear.
+    - Eliminados el grupo `shrinkwrap`, el atributo `Col`, la acción `RestPosee` y los datos huérfanos.
+    - Transformaciones en identidad y ejes listos para glTF.
+  - Verificado: las 35 poses de control coinciden con el original escalado (error máximo 0,86 mm).
+  - Los n-gons y el límite de 4 influencias se dejan para después de aplicar la subdivisión (1.4/1.6).
+  - Detalle: [docs/fase_1_3_limpieza.md](docs/fase_1_3_limpieza.md).
 - [ ] **Fase 1.4 Optimización de geometría.** Objetivo 20-40 k triángulos, LODs de 40 k / 15 k / 5 k y horneado a normal map del detalle perdido.
 - [ ] **Fase 1.5 Texturas PBR glTF.** baseColor, normal y ORM a 2K, ajuste de color a las referencias y máscara de "mojado" para Three.js.
 - [ ] **Fase 1.6 Rig.** Revisar y adaptar el esqueleto existente o reconstruirlo si no sirve; máximo 4 influencias por vértice.
@@ -179,6 +186,10 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 - [ ] **Fase 8.2** Perfilado y optimización: resoluciones de nubes y god rays, cascadas FFT, número de partículas y LOD de la ballena.
 - [ ] **Fase 8.3** Build de producción, despliegue (GitHub Pages, Netlify o Vercel) y documentación de parámetros.
 - [ ] **Fase 8.4 (opcional)** Captura a vídeo en alta calidad a cámara lenta.
+- [ ] **Fase 8.5 Fallback WebGL2.**
+  - Detectar si hay WebGPU; si no, usar el backend WebGL2 de `WebGPURenderer` (`forceWebGL`) o avisar al usuario.
+  - Revisar qué efectos basados en *compute* (FFT, partículas, nubes) necesitan una alternativa, una versión simplificada o desactivarse.
+  - Perfil de calidad reducido y pruebas en navegadores sin WebGPU.
 
 ---
 
@@ -195,4 +206,4 @@ Fase 0 ─► Fase 1 (Blender) ────────────────�
 
 - **Calidad del modelo de la ballena.** Es el elemento que más se ve. El modelo descargado hay que validarlo (calidad, rig y licencia) en la Fase 1.1 y refinarlo en la Fase 1.9 si hace falta.
 - **Coste en GPU** de nubes volumétricas + FFT + god rays a la vez: se mitiga con media resolución, reproyección temporal y perfiles de calidad.
-- **Compatibilidad WebGPU:** si hay que soportar navegadores o equipos antiguos, se mantiene el camino WebGL2 con menos calidad.
+- **Compatibilidad WebGPU:** el desarrollo es solo WebGPU. El fallback WebGL2 se deja para la Fase 8.5, con menos calidad; conviene no depender de funciones exclusivas de WebGPU sin prever una alternativa sencilla.
