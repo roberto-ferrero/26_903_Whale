@@ -17,6 +17,8 @@ import { createAnchor } from './whale/anchor.js';
 import { createSky } from './sky/sky.js';
 import { createClouds } from './sky/clouds.js';
 import { createOcean } from './ocean/ocean.js';
+import { createRipples } from './water/ripples.js';
+import { createInteraction } from './water/interaction.js';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
 const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.ktx2`;
@@ -48,8 +50,9 @@ const clock = createSimClock();
 const clouds = await createClouds(viewer.renderer, viewer.scene);
 const sky = createSky(viewer, [clouds.envMesh]);
 const lighting = createLighting(viewer, () => sky.state.enabled);
+const ripples = createRipples(viewer.renderer); // ondas y espuma de la ballena (Fase 5)
 const ocean = createOcean({
-  renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, clouds, sky, getTime: () => clock.state.time,
+  renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, clouds, sky, getTime: () => clock.state.time, ripples,
 });
 // al cambiar cielo o nubes: la iluminación manual vuelve si el cielo se apaga y se rehace el entorno
 const applySky = () => { sky.apply(); lighting.apply(); };
@@ -61,6 +64,7 @@ const helpers = createHelpers(viewer.scene, viewer.sun, whale, lod.state);
 helpers.setWaterShadow((p) => clouds.cloudShadowNode(p)); // sombras de nubes sobre el agua (Fase 3.5)
 const fsm = createWhaleStates(viewer.scene, whale, anim, helpers.state);
 const skeleton = createSkeletonHelpers(viewer.scene, whale);
+const water = createInteraction({ renderer: viewer.renderer, scene: viewer.scene, whale, ocean, ripples, fsm });
 const anchor = createAnchor(viewer.scene, whale, helpers.state);
 const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, () => fsm.state.current);
 const debug = createDebug(container, whale, fsm);
@@ -77,12 +81,13 @@ params.add('cielo', sky.state, applySky, ['enabled', 'model', 'ozone', 'multiSca
   'moonStrength', 'stars', 'cloudLight', 'fogDensity']);
 params.add('nubes', clouds.state, applyClouds);
 params.add('oceano', ocean.state, () => ocean.apply(), Object.keys(ocean.state).filter((k) => k !== 'info'));
+params.add('agua', water.state, water.apply, Object.keys(water.state).filter((k) => k !== 'info'));
 params.add('modelo', look.state, look.apply);
 params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
 params.add('debug', debug.state, debug.apply);
 const presets = loadBuiltinPresets();
-createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
+createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
 applySky();
 params.readURL();
 
@@ -109,6 +114,7 @@ function frame(realDt) {
   clouds.changing = sky.state.animate && dt > 0; // con la hora avanzando, sin historial temporal
   sky.renderEnv(); // entorno PMREM con el cielo y las nubes ya actualizados
   ocean.update(dt, sky.light, viewer.sun); // oleaje FFT (compute) y luz del agua (Fase 4)
+  water.update(dt, sky.light, viewer.sun); // sondas, ondas, espuma y salpicaduras (Fase 5)
   lod.update(viewer.camera);
   helpers.update();
   skeleton.update();
@@ -134,7 +140,7 @@ function frame(realDt) {
 if (import.meta.env.DEV) {
   const renderer = viewer.renderer;
   window.whaleViewer = {
-    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, helpers, skeleton, anchor, cameras, debug, params,
+    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, helpers, skeleton, anchor, cameras, debug, params,
     /** Dibuja n fotogramas a paso fijo aunque la pestaña esté oculta; devuelve el tiempo de GPU del último (ms). */
     async renderFrames(n = 1, realDt = 1 / 30, size = [1280, 720]) {
       if (renderer.domElement.width === 0 || window.innerWidth === 0) {

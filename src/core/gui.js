@@ -6,7 +6,7 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -183,6 +183,24 @@ export function createGui(m) {
   fLook.add(oc, 'haze', 1, 80, 0.5).name('Visibilidad horizontal (km)').onChange(oa);
   fLook.add(oc, 'refraction').name('Refracción (ver bajo el agua)').onChange(oa);
   fOcean.add(oc, 'buoys').name('Boyas de prueba (altura en CPU)').onChange(oa);
+
+  // ------------------------------------------------------------------ interacción con el agua (Fase 5)
+  const fWater = gui.addFolder('Ballena ↔ agua');
+  const wa = water.state;
+  const wapply = () => water.apply();
+  fWater.add(wa, 'enabled').name('Interacción').onChange(wapply);
+  fWater.add(wa, 'info').name('Estado').listen().disable();
+  fWater.add(wa, 'splashes').name('Salpicaduras').onChange(wapply);
+  fWater.add(wa, 'density', 0, 3, 0.05).name('Cantidad de agua');
+  fWater.add(wa, 'sizeScale', 0.3, 3, 0.05).name('Tamaño de las gotas');
+  fWater.add(wa, 'brightness', 0.2, 3, 0.05).name('Brillo de las gotas');
+  fWater.add(wa, 'curtains', 0, 3, 0.05).name('Cortinas (agua del cuerpo)');
+  fWater.add(wa, 'waves', 0, 3, 0.05).name('Fuerza de las ondas');
+  fWater.add(wa, 'rippleSpeed', 1, 10, 0.1).name('Velocidad de las ondas (m/s)');
+  fWater.add(wa, 'wake', 0, 3, 0.05).name('Estela');
+  fWater.add(wa, 'foamLife', 2, 90, 1).name('Duración de la espuma (s)');
+  fWater.add(wa, 'dynamicWet').name('Piel mojada automática');
+  fWater.add(wa, 'showProbes').name('Ver sondas').onChange(wapply);
 
   // ------------------------------------------------------------------ iluminación y ambiente
   const fLight = gui.addFolder('Iluminación (sin cielo: manual)');

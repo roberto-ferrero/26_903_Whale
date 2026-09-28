@@ -21,7 +21,7 @@ export const OCEAN_MODES = ['FFT', 'Gerstner'];
  * es menor que su celda, la malla nunca se pliega. Los vértices lejanos leen el desplazamiento
  * en un mip acorde a su celda (sin aliasing) y la superficie se curva con la Tierra.
  */
-export function createOcean({ renderer, scene, camera, clouds, sky, getTime }) {
+export function createOcean({ renderer, scene, camera, clouds, sky, getTime, ripples = null }) {
   const state = {
     enabled: true,
     mode: 'FFT',
@@ -169,7 +169,9 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime }) {
       disp.addAssign(d.xyz);
     }
     const g = gerstnerAt(xz, false);
-    const dsp = mix(disp, g.disp, u.gerstner);
+    const dsp = mix(disp, g.disp, u.gerstner).toVar();
+    // ondas de la interacción con la ballena (Fase 5.2)
+    if (ripples) dsp.y.addAssign(ripples.sampleNode(xz, max(log2(cellMax.div(ripples.cell)), 0.0)).x);
     const world = vec3(xz.x, u.level, xz.y).add(dsp).toVar();
     // curvatura de la Tierra: caída d²/2R
     const dx = world.xz.sub(cam.xz);
@@ -201,8 +203,15 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime }) {
     // las pequeñas solo la texturizan (donde se comprimen, más espuma)
     const foamAcc = derivs[0].w.mul(clamp(float(0.8).sub(jSmall.mul(2.5)), 0.25, 1.6));
     const g = gerstnerAt(xz, true);
-    const sl = mix(slope, g.slope, u.gerstner);
-    const foamRaw = mix(foamAcc, clamp(u.foamJ.sub(g.jac).mul(1.5), 0, 1), u.gerstner);
+    const sl = mix(slope, g.slope, u.gerstner).toVar();
+    const foamRaw = mix(foamAcc, clamp(u.foamJ.sub(g.jac).mul(1.5), 0, 1), u.gerstner).toVar();
+    if (ripples) {
+      // ondas y espuma persistente de la interacción (Fases 5.2 y 5.5)
+      const rs = ripples.sampleNode(xz);
+      sl.addAssign(rs.yz);
+      // la espuma de la ballena también se rompe con el oleaje pequeño (no un disco uniforme)
+      foamRaw.addAssign(rs.w.mul(clamp(float(0.7).sub(jSmall.mul(4)), 0.15, 1.6)));
+    }
     const N = normalize(vec3(sl.x.negate(), 1, sl.y.negate())).toVar();
     // desde arriba, una normal que mira "hacia dentro" se endereza un poco
     const NdV = dot(N, V);
@@ -262,6 +271,18 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime }) {
     const hz = float(1).sub(exp(dist.div(u.haze.mul(1000 / 3)).negate()));
     return mix(col, horizon, hz);
   })();
+
+  /**
+   * Altura aproximada del agua en xz (posición sin desplazar), para compute shaders (partículas):
+   * nivel + oleaje (mip 0) + ondas de la interacción.
+   */
+  const surfaceHeightNode = (xz) => {
+    let h = float(0);
+    for (let c = 0; c < L.length; c++) h = h.add(dispTex[c].sample(xz.div(L[c]).add(halfTexel)).level(0).y);
+    h = mix(h, gerstnerAt(xz, false).disp.y, u.gerstner);
+    if (ripples) h = h.add(ripples.sampleNode(xz, 0).x);
+    return h.add(u.level);
+  };
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.frustumCulled = false;
@@ -339,6 +360,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime }) {
     apply,
     modes: OCEAN_MODES,
     heightAt,
+    surfaceHeightNode,
     mesh,
     fft,
     uniforms: u,

@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.22 · 28/09/2026
+Versión 0.23 · 28/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -190,17 +190,24 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 5: Interacción ballena ↔ agua
+## [x] Fase 5: Interacción ballena ↔ agua
 
-- [ ] **Fase 5.1 Detección de cruce.** Puntos de muestreo sobre los huesos de la ballena que detectan en qué zonas y a qué velocidad atraviesa la superficie.
-- [ ] **Fase 5.2 Ondas dinámicas.** Simulación local de ecuación de onda (*height field* 2D) centrada en la ballena y sumada al oleaje: anillos concéntricos en la salida y, sobre todo, en el impacto.
-- [ ] **Fase 5.3 Salpicaduras (partículas GPU).** Tres capas: gotas grandes con física balística, spray fino y niebla/bruma. Emisión según velocidad y área de intersección, con iluminación por el sol y el cielo.
-- [ ] **Fase 5.4 Cortinas de agua sobre el cuerpo.** Agua que cae desde el lomo y las aletas durante el salto, goteo desde los bordes de las pectorales y shader de piel mojada.
-- [ ] **Fase 5.5 Espuma persistente.** Textura de espuma acumulada en el mundo, que se advecta y se disipa con el tiempo; mancha blanca en la zona de impacto.
-- [ ] **Fase 5.6 Estela.** Estela en superficie cuando la ballena nada cerca de ella.
-- [ ] **Fase 5.7 Sincronización.** Los eventos `surface_exit`, `apex` e `impact` de la animación disparan emisores e impulsos de ondas.
+- [x] **Fase 5.1 Detección de cruce.** Puntos de muestreo sobre los huesos de la ballena que detectan en qué zonas y a qué velocidad atraviesa la superficie.
+  - Hecho: `water/interaction.js`: 22 sondas (esferas con el radio del cuerpo) con velocidad, profundidad, sección cortada e instante de salida; se pueden ver en la GUI.
+- [x] **Fase 5.2 Ondas dinámicas.** Simulación local de ecuación de onda (*height field* 2D) centrada en la ballena y sumada al oleaje: anillos concéntricos en la salida y, sobre todo, en el impacto.
+  - Hecho: `water/ripples.js`: 256² celdas de 0,5 m que siguen a la ballena, bordes de esponja y fuentes que imponen la velocidad del cuerpo; el pulso del impacto da cráter y anillo. El océano la suma a su altura y sus normales.
+- [x] **Fase 5.3 Salpicaduras (partículas GPU).** Tres capas: gotas grandes con física balística, spray fino y niebla/bruma. Emisión según velocidad y área de intersección, con iluminación por el sol y el cielo.
+  - Hecho: `water/splash.js`: 131 072 partículas en un búfer circular con emisores (sin atómicos), choque con la superficie del océano y luz a contraluz (Henyey-Greenstein).
+- [x] **Fase 5.4 Cortinas de agua sobre el cuerpo.** Agua que cae desde el lomo y las aletas durante el salto, goteo desde los bordes de las pectorales y shader de piel mojada.
+  - Hecho: láminas estiradas que se desprenden durante 2,2 s según la velocidad de salida, goteo de las puntas de las aletas y piel mojada automática (se seca en ~1 min).
+- [x] **Fase 5.5 Espuma persistente.** Textura de espuma acumulada en el mundo, que se advecta y se disipa con el tiempo; mancha blanca en la zona de impacto.
+  - Hecho: canal de espuma de la simulación, con fuentes, rotura, advección por la deriva del viento, difusión y τ = 25 s; el oleaje pequeño la rompe en manchas.
+- [x] **Fase 5.6 Estela.** Estela en superficie cuando la ballena nada cerca de ella.
+  - Hecho: las sondas que avanzan cortando la superficie hunden el agua y dejan espuma y spray.
+- [x] **Fase 5.7 Sincronización.** Los eventos `surface_exit`, `apex` e `impact` de la animación disparan emisores e impulsos de ondas.
+  - Hecho: `surface_exit` e `impact` lanzan ráfagas de gotas, spray y bruma y pulsos de ondas y espuma. `apex` no dispara nada propio: a partir de ahí solo siguen las cortinas, que dependen del tiempo desde la salida.
 
-**Hecho cuando:** el salto se ve como en las fotos de referencia: columna de agua, cortinas que caen y un gran impacto con ondas.
+**Hecho cuando:** el salto se ve como en las fotos de referencia: columna de agua, cortinas que caen y un gran impacto con ondas. ✔ Cumplido el 28/09/2026. Coste: 0,4 ms (partículas) + 0,55 ms (ondas) de GPU y 0,7 ms de CPU. Detalle y capturas de la secuencia: [docs/fase_5_interaccion.md](docs/fase_5_interaccion.md).
 
 ---
 
