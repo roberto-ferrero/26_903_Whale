@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
-  abs, clamp, float, instancedBufferAttribute, max, mix, mrt, normalLocal, positionLocal, positionWorld, sin, smoothstep,
+  abs, attribute, clamp, float, instancedBufferAttribute, max, mix, mrt, normalLocal, positionLocal, positionWorld, sin, smoothstep,
   uniform, vec3, vec4, output,
 } from 'three/tsl';
 
@@ -66,17 +66,21 @@ export function createFish({ scene, ocean, water, camera }) {
   const geo = fishGeometry();
 
   // ------------------------------------------------------------------ material (coletazo + contrasombreado)
-  const makeMaterial = (paramsAttr, motionAttr, base, belly) => {
+  const makeMaterial = (paramsAttr, motionAttr, sideAttr, base, belly) => {
     const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.35, metalness: 0.2, side: THREE.DoubleSide });
     const prm = instancedBufferAttribute(paramsAttr); // x fase, y frecuencia (Hz), z amplitud
-    const z = positionLocal.z;
+    // ojo: en three, positionLocal ya lleva la matriz de la instancia cuando se evalúa positionNode;
+    // la coordenada a lo largo del cuerpo sale del atributo original y el desplazamiento lateral se
+    // aplica en el eje "costado" del pez (calculado en CPU con su orientación y escala)
+    const raw = attribute('position', 'vec3');
+    const z = raw.z;
     // la onda recorre el cuerpo de la cabeza a la cola; casi nada delante, mucho en la cola
     const bend = max(float(0.35).sub(z), 0).pow(2).mul(prm.z);
     const wag = sin(time.mul(prm.y).mul(6.2832).add(prm.x).sub(z.mul(2.5))).mul(bend);
-    m.positionNode = positionLocal.add(vec3(wag, 0, 0));
+    m.positionNode = positionLocal.add(instancedBufferAttribute(sideAttr).mul(wag));
     // lomo oscuro, vientre claro y una franja plateada
     const up = clamp(normalLocal.y.mul(0.5).add(0.5), 0, 1);
-    const stripe = float(1).sub(smoothstep(0.0, 0.05, abs(positionLocal.y.sub(0.02)))).mul(0.25);
+    const stripe = float(1).sub(smoothstep(0.0, 0.05, abs(raw.y.sub(0.02)))).mul(0.25);
     m.colorNode = mix(vec3(...belly), vec3(...base), smoothstep(0.35, 0.75, up)).add(stripe);
     // luz bajo el agua (absorción y cáusticas) y sin velocidad propia para el motion blur
     m.outputNode = output.mul(vec4(ocean.underLightNode(positionWorld), 1));
@@ -90,13 +94,14 @@ export function createFish({ scene, ocean, water, camera }) {
   function makeGroup(max, base, belly) {
     const params = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
     const motion = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3); // desplazamiento en el fotograma
-    const mesh = new THREE.InstancedMesh(geo, makeMaterial(params, motion, base, belly), max);
+    const side = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3); // eje lateral del pez × escala
+    const mesh = new THREE.InstancedMesh(geo, makeMaterial(params, motion, side, base, belly), max);
     mesh.frustumCulled = false;
     mesh.count = 0;
     scene.add(mesh);
     const pos = new Float32Array(max * 3), vel = new Float32Array(max * 3);
     for (let i = 0; i < max; i++) params.setXYZ(i, Math.random() * 6.28, 3, 0.08);
-    return { mesh, params, motion, pos, vel, max };
+    return { mesh, params, motion, side, pos, vel, max };
   }
   const school = makeGroup(MAX_SCHOOL, [0.2, 0.3, 0.38], [0.85, 0.88, 0.9]);
   const loners = makeGroup(MAX_LONERS, [0.18, 0.24, 0.2], [0.75, 0.72, 0.62]);
@@ -108,7 +113,7 @@ export function createFish({ scene, ocean, water, camera }) {
   let homeAngle = 0;
   const whalePts = [];
   const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(), tmpP = new THREE.Vector3();
-  const fwd = new THREE.Vector3(0, 0, 1), dir = new THREE.Vector3();
+  const fwd = new THREE.Vector3(0, 0, 1), dir = new THREE.Vector3(), sideV = new THREE.Vector3();
 
   function spawn(g, n, center, spread, speed) {
     for (let i = 0; i < n; i++) {
@@ -245,11 +250,14 @@ export function createFish({ scene, ocean, water, camera }) {
       g.params.setY(i, Math.min(1.2 + (sp / size) * 0.35, 9) * wagScale);
       g.params.setZ(i, 0.09);
       g.motion.setXYZ(i, g.vel[i * 3] * dt, g.vel[i * 3 + 1] * dt, g.vel[i * 3 + 2] * dt);
+      sideV.set(tmpS.x, 0, 0).applyQuaternion(tmpQ);
+      g.side.setXYZ(i, sideV.x, sideV.y, sideV.z);
     }
     g.mesh.count = n;
     g.mesh.instanceMatrix.needsUpdate = true;
     g.params.needsUpdate = true;
     g.motion.needsUpdate = true;
+    g.side.needsUpdate = true;
   }
 
   function apply() {

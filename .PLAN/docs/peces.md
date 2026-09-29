@@ -2,23 +2,18 @@
 
 29/09/2026 · Petición de Roberto: un selector en la GUI para ver la versión WebGL, algún pez suelto y un cardumen de peces pequeños que nade como un cardumen de verdad.
 
-| Cardumen de cerca (WebGPU) | Cardumen bajo la superficie |
+| Cardumen de cerca | Cardumen a media distancia |
 |---|---|
-| ![](img/peces/cardumen_cerca.jpg) | ![](img/peces/cardumen.jpg) |
-| **El mismo cardumen en WebGL2 (a la derecha, un pez suelto)** | |
-| ![](img/peces/webgl_cardumen.jpg) | |
+| ![](img/peces/cardumen_cerca.jpg) | ![](img/peces/cardumen_medio.jpg) |
 
-## Revisión del 29/09/2026 (petición de Roberto)
+## Revisión del 29/09/2026 (petición de Roberto: «salen como rayas caóticas»)
 
-- **El cardumen salía como «rayas caóticas».** No era el comportamiento, sino el **TAA**: los peces escribían velocidad 0 para el motion blur. Con la cámara en movimiento, el TAA creía que no se habían movido en pantalla y, al ser tan finos, arrastraba su historia en estelas.
-  - Ahora escriben su **velocidad real en pantalla**: movimiento de la cámara (reproyección con la vista-proyección del fotograma anterior, `ocean.cameraVelocityNode`) más el desplazamiento del propio pez en el fotograma (atributo por instancia).
-  - Las salpicaduras, las burbujas y la nieve marina tenían el mismo problema; ahora usan la velocidad de la cámara.
+- **Causa real: la geometría se deformaba.** En three r186 la matriz de cada instancia se aplica **antes** del `positionNode` del material. El coletazo usaba `positionLocal.z`, que ya estaba en coordenadas del mundo (z de −10 a 0 m), y desplazaba los vértices metros enteros. Cada pez se convertía en una aguja de varios metros, más larga cuanto más lejos del origen.
+  - **Corrección:** la coordenada a lo largo del cuerpo sale del atributo original (`attribute('position')`). El desplazamiento lateral se aplica en el eje del costado del pez, que se calcula en CPU con su orientación y su escala (atributo por instancia).
+  - La primera respuesta (que era el TAA) fue un diagnóstico equivocado. Lo que me hizo verlo fue acercarme a 1,5 m: las agujas seguían ahí con FXAA y sin motion blur.
+- **Mejora que se mantiene del primer intento:** peces, salpicaduras, burbujas y nieve marina escriben su velocidad real en pantalla: movimiento de la cámara (`ocean.cameraVelocityNode`) más, en los peces, su propio desplazamiento en el fotograma. Antes escribían 0, y eso sí producía estelas del TAA al mover la cámara, aunque mucho más cortas.
 - **Peces sueltos:** desactivados (el código se conserva, fuera de la GUI y de los presets).
-- **Selector WebGPU / WebGL2:** retirado de la GUI. El resultado en WebGL2 es demasiado pobre. El fallback automático sin WebGPU (y `?webgl` en la URL) se mantiene.
-
-![](img/peces/cardumen_camara_en_movimiento.jpg)
-
-*El cardumen con la cámara girando a su alrededor, ya sin estelas.*
+- **Selector WebGPU / WebGL2:** retirado de la GUI. El fallback automático sin WebGPU (y `?webgl` en la URL) se mantiene.
 
 ## Selector de renderizador (retirado)
 
