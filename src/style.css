@@ -228,8 +228,44 @@ canvas {
 .whale-ui footer {
   position: absolute;
   left: 26px;
-  right: 12px;
+  right: 26px;
   bottom: max(8px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.whale-actions button {
+  pointer-events: auto;
+  border: 1px solid var(--whale-border);
+  border-radius: 3px;
+  background: var(--whale-panel);
+  color: var(--whale-text);
+  padding: 7px 10px;
+  font: 12px system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.whale-actions button:hover {
+  border-color: var(--whale-accent);
+}
+
+.whale-actions button:focus-visible {
+  outline: 2px solid var(--whale-accent-2);
+  outline-offset: 3px;
+}
+
+/* imagen de la cámara frontal (efecto 3D), en espejo */
+.parallax-preview {
+  position: fixed;
+  right: 26px;
+  bottom: 56px;
+  width: 180px;
+  z-index: 21;
+  transform: scaleX(-1);
+  border: 1px solid var(--whale-border);
+  pointer-events: none;
 }
 
 .whale-metrics {

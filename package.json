@@ -18,6 +18,7 @@
     "vite": "^8.3.0"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
     "lil-gui": "^0.21.0",
     "three": "^0.186.1"
   }

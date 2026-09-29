@@ -28,6 +28,7 @@ import { createQuality } from './core/quality.js';
 import { createRecorder } from './core/recorder.js';
 import { createFish } from './life/fish.js';
 import { createUi } from './core/ui.js';
+import { createParallax } from './core/parallax.js';
 import { output, positionWorld, vec4 } from 'three/tsl';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
@@ -97,6 +98,13 @@ const audio = createAudio({ camera: viewer.camera, fsm, ocean, under }); // Fase
 const recorder = createRecorder({ canvas: viewer.renderer.domElement }); // Fase 8.4
 await ui.step('Soltando el cardumen…', 0.62);
 const fish = createFish({ scene: viewer.scene, ocean, water, camera: viewer.camera }); // cardumen y peces sueltos
+// efecto 3D de ventana (paralaje con la cámara frontal); desactivado hasta que se pulse el botón
+const parallax = createParallax({ camera: viewer.camera, controls: viewer.controls, canvas: viewer.renderer.domElement });
+const parallaxButton = ui.addButton('Activar efecto 3D (cámara)', () => {
+  const on = parallax.toggle();
+  parallaxButton.textContent = on ? 'Desactivar efecto 3D' : 'Activar efecto 3D (cámara)';
+  gui?.controllersRecursive().forEach((c) => c.updateDisplay());
+});
 let gui = null;
 const quality = createQuality({ // Fase 8.1
   viewer, clouds, under, post, water, onChange: () => gui?.controllersRecursive().forEach((c) => c.updateDisplay()),
@@ -143,7 +151,7 @@ function toggleHelpers(on = !helpersOn) {
   gui?.controllersRecursive().forEach((c) => c.updateDisplay());
 }
 
-gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets, toggleHelpers });
+gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets, toggleHelpers, parallax });
 applySky();
 if (!viewer.compute) {
   // Fase 8.5: WebGL2 (sin WebGPU): perfil bajo y aviso de lo que no está disponible
@@ -183,6 +191,7 @@ function frame(realDt) {
   if (cameras.introActive && fsm.state.current === 'nadar') fsm.state.timeInState = 0;
   fsm.update(dt); // incluye el mixer de animación
   cameras.update(realDt, dt);
+  parallax.begin(realDt); // efecto 3D: ojo desplazado y proyección descentrada (se deshace tras dibujar)
   sky.update(dt);
   clouds.update(dt, viewer.camera, sky.light.dir, sky.light.sunColor, sky.light.sunIntensity, sky.light.ambient);
   clouds.changing = sky.state.animate && dt > 0; // con la hora avanzando, sin historial temporal
@@ -199,11 +208,12 @@ function frame(realDt) {
   skeleton.update();
   anchor.update();
   debug.update();
-  if (!viewer.ensureSize()) return false; // ventana oculta: evita texturas de tamaño 0
+  if (!viewer.ensureSize()) { parallax.end(); return false; } // ventana oculta: evita texturas de tamaño 0
   clouds.render(viewer.camera); // pase de nubes a resolución reducida (Fase 3.4)
   post.render(); // escena + bajo el agua (Fase 6) + posprocesado global (Fase 7.3)
   recorder.frame(); // Fase 8.4
   viewer.labelRenderer.render(viewer.scene, viewer.camera);
+  parallax.end();
   const c = clock.state;
   stats.update(
     viewer.renderer,
@@ -220,7 +230,7 @@ function frame(realDt) {
 if (import.meta.env.DEV) {
   const renderer = viewer.renderer;
   window.whaleViewer = {
-    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, quality, recorder, fish, helpers,
+    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, quality, recorder, fish, helpers, parallax,
     get gui() { return gui; }, skeleton, anchor, cameras, debug, params,
     /** Dibuja n fotogramas a paso fijo aunque la pestaña esté oculta; devuelve el tiempo de GPU del último (ms). */
     async renderFrames(n = 1, realDt = 1 / 30, size = [1280, 720]) {

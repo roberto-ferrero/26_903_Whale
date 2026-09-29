@@ -1,13 +1,14 @@
 import GUI from 'lil-gui';
 import { CAMERA_MODES, RAILS } from './cameras.js';
 import { BREATH_STYLES } from '../whale/breathPlanner.js';
+import { PARALLAX_SOURCES } from './parallax.js';
 
 /**
  * Panel lil-gui (Fase 2.2): una carpeta por módulo. Los estados de los módulos están registrados
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets, toggleHelpers } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets, toggleHelpers, parallax } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -38,6 +39,23 @@ export function createGui(m) {
   fSeq.add(sq, 'swimDepth', 2, 30, 0.5).name('Profundidad entre respiraciones (m)');
   fSeq.add(sq, 'surfaceTime', 2, 60, 1).name('Ondas y espuma (s)');
   fSeq.add(sq, 'surfaceDepth', 1, 10, 0.5).name('Nado en superficie (m)');
+
+  // ------------------------------------------------------------------ efecto 3D (rama parallax)
+  const fPar = gui.addFolder('Efecto 3D (paralaje)');
+  const pst = parallax.state;
+  const pap = () => parallax.apply();
+  fPar.add(pst, 'enabled').name('Activado (pide la cámara)').listen().onChange(pap);
+  fPar.add(pst, 'source', PARALLAX_SOURCES).name('Fuente').listen().onChange(pap);
+  fPar.add(pst, 'info').name('Estado').listen().disable();
+  fPar.add(pst, 'intensity', 0, 3, 0.05).name('Intensidad (1 = realista)');
+  fPar.add(pst, 'windowDepth', 0.5, 3, 0.05).name('Plano de la pantalla (× distancia)');
+  fPar.add(pst, 'smoothing', 0.01, 0.6, 0.01).name('Suavizado (s)');
+  fPar.add(pst, 'screenWidth', 5, 150, 0.5).name('Ancho de la pantalla (cm)');
+  fPar.add(pst, 'viewDistance', 20, 200, 1).name('Distancia habitual (cm)');
+  fPar.add(pst, 'cameraFov', 40, 100, 1).name('Ángulo de la cámara (°)');
+  fPar.add(pst, 'cameraAbove', 0, 1, 0.05).name('Cámara en el borde superior');
+  fPar.add(pst, 'preview').name('Ver la imagen de la cámara').onChange(pap);
+  fPar.close();
 
   // ------------------------------------------------------------------ grabar vídeo (Fase 8.4)
   const fRec = gui.addFolder('Grabar vídeo');

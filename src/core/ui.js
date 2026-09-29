@@ -25,7 +25,7 @@ export function createUi(container, backend) {
       <p class="whale-status-text">Iniciando…</p>
       <div class="whale-progress" aria-hidden="true"><div class="whale-progress-fill"></div></div>
     </div>
-    <footer><p class="whale-metrics">Preparando la primera imagen…</p></footer>`;
+    <footer><p class="whale-metrics">Preparando la primera imagen…</p><div class="whale-actions"></div></footer>`;
   container.appendChild(root);
 
   const cover = root.querySelector('.whale-cover');
@@ -65,6 +65,15 @@ export function createUi(container, backend) {
       cover.style.transition = `opacity ${seconds}s ease-in-out`;
       cover.style.opacity = '0';
       setTimeout(() => cover.remove(), seconds * 1000 + 100);
+    },
+    /** Botón en el pie (a la derecha). */
+    addButton(label, onClick) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.addEventListener('click', onClick);
+      root.querySelector('.whale-actions').appendChild(b);
+      return b;
     },
     /** Línea del pie con las métricas. */
     setMetrics(line) { metrics.textContent = line; },

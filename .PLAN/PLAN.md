@@ -298,6 +298,11 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
     - las burbujas siguen una corriente submarina propia (0,25 m/s, ajustable): antes se las llevaba el viento;
     - la versión anterior se conserva como estilo *En superficie*.
   - Detalle: [docs/respiracion.md](docs/respiracion.md).
+- [~] **Efecto 3D de ventana (paralaje con la cámara frontal)** (29/09/2026, rama `parallax`): `src/core/parallax.js`.
+  - La cara, leída con MediaPipe en el navegador, mueve el punto de vista con una proyección descentrada; la ballena queda por delante de la «ventana» y sale de la pantalla.
+  - Botón en el pie para activarlo; alternativas con el ratón y con el giroscopio.
+  - Pendiente: probar con la cámara de verdad (Roberto).
+  - Detalle: [docs/parallax.md](docs/parallax.md).
 - [x] **Arranque, formato de cine e interfaz** (29/09/2026): `src/core/ui.js`.
   - Cortina azul oscuro con los mensajes reales de la inicialización y barra de progreso. Fundido a la animación cuando la imagen se estabiliza.
   - La cámara empieza bajo la ballena, a contraluz del sol, y viaja en arco a la posición de seguimiento (7 s).
