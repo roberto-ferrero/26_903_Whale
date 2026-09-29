@@ -273,11 +273,12 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
 
 ## [x] Ampliaciones (peticiones durante el desarrollo)
 
-- [x] **Selector de renderizador en la GUI** (29/09/2026): *Calidad* → «Renderizador (recarga)», WebGPU / WebGL2 (recarga la página conservando los ajustes).
+- [x] ~~**Selector de renderizador en la GUI**~~ (29/09/2026): añadido y retirado a petición de Roberto (WebGL2 da un resultado demasiado pobre). El fallback automático sin WebGPU se mantiene.
 - [x] **Peces sueltos y cardumen** (29/09/2026): `src/life/fish.js`.
   - Peces procedurales con coletazo en el vertex shader y luz con cáusticas bajo el agua.
   - Cardumen de 500 peces con boids (10 vecinos por pez, huida de la ballena): se organiza en ~10 s con polarización 0,96–0,99 y cuesta 0,54 ms de CPU.
-  - 4 peces sueltos que deambulan.
+  - Peces sueltos: desactivados de momento, a petición de Roberto.
+  - Corregidas las estelas del TAA (los peces no escribían su velocidad real).
   - Funciona también en WebGL2.
   - Detalle: [docs/peces.md](docs/peces.md).
 

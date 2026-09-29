@@ -39,7 +39,9 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
   // sin compute (WebGL2, Fase 8.5): ni partículas ni ondas; el resto (sondas, piel mojada) sigue
   const compute = renderer.backend.isWebGPUBackend === true;
   const splash = compute
-    ? createSplash(renderer, scene, { surfaceHeight: ocean.surfaceHeightNode, lightNode: ocean.underLightNode })
+    ? createSplash(renderer, scene, {
+      surfaceHeight: ocean.surfaceHeightNode, lightNode: ocean.underLightNode, velocityNode: ocean.cameraVelocityNode,
+    })
     : {
       emit() {}, update() {}, set visible(v) {}, stats: { spawned: 0 },
       uniforms: { wind: { value: new THREE.Vector3() }, sizeScale: { value: 1 }, brightness: { value: 1 } },

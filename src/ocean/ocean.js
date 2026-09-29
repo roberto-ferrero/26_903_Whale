@@ -386,8 +386,16 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
   // velocidad para TAA y motion blur (Fase 7.3): la malla se genera en el vertex shader, así que la
   // velocidad de three (posición del atributo) no vale; se reproyecta el punto con la cámara anterior
   const curVP = uniform(new THREE.Matrix4()), prevVP = uniform(new THREE.Matrix4());
-  const clipCur = curVP.mul(vec4(vPos, 1)), clipPrev = prevVP.mul(vec4(vPos, 1));
-  material.mrtNode = mrt({ velocity: vec4(clipCur.xy.div(clipCur.w).sub(clipPrev.xy.div(clipPrev.w)), 0, 1) });
+  /**
+   * Velocidad en pantalla de un punto del mundo por el movimiento de la cámara (para TAA y motion
+   * blur). La usan también los objetos cuya posición se calcula en el shader (peces, partículas):
+   * con velocidad 0, al mover la cámara el TAA los arrastraba en estelas.
+   */
+  const cameraVelocityNode = (wp, wpPrev = wp) => {
+    const cc = curVP.mul(vec4(wp, 1)), cp = prevVP.mul(vec4(wpPrev, 1));
+    return vec4(cc.xy.div(cc.w).sub(cp.xy.div(cp.w)), 0, 1);
+  };
+  material.mrtNode = mrt({ velocity: cameraVelocityNode(vPos) });
   const vpNow = new THREE.Matrix4();
   let vpReady = false;
 
@@ -471,6 +479,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     heightAt,
     surfaceHeightNode,
     causticNode,
+    cameraVelocityNode,
     shaftNode,
     underLightNode,
     waterTypes: WATER_TYPES,

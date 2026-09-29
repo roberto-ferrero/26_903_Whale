@@ -20,7 +20,7 @@ const MAX_EMITTERS = 64;
  *   4 burbuja · bajo el agua: sube a su velocidad terminal (según el tamaño), oscila y estalla al llegar arriba
  * Iluminación: ambiente del cielo + sol con fase Henyey-Greenstein (el agua brilla a contraluz).
  */
-export function createSplash(renderer, scene, { count = 131072, surfaceHeight, lightNode = null }) {
+export function createSplash(renderer, scene, { count = 131072, surfaceHeight, lightNode = null, velocityNode = null }) {
   const N = count;
   const P = instancedArray(N, 'vec4'); // xyz, edad
   const V = instancedArray(N, 'vec4'); // velocidad, vida (0 = muerta)
@@ -132,8 +132,8 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
   const alphaType = select(type.lessThan(0.5), float(0.8), select(type.lessThan(1.5), float(0.3), select(isMist, float(0.035), select(isBubble, float(0.7), float(0.4)))));
   material.opacityNode = select(isMist, soft, select(isBubble, ring, round)).mul(alphaType).mul(fadeIn.mul(fadeOut)).mul(u.opacity)
     .mul(clamp(dist.div(2), 0, 1)); // no tapar la cámara
-  // sin velocidad propia (la posición sale del búfer): fuera del motion blur y del TAA
-  material.mrtNode = mrt({ velocity: vec4(0) });
+  // la posición sale del búfer: velocidad solo por el movimiento de la cámara (TAA sin estelas)
+  material.mrtNode = mrt({ velocity: velocityNode ? velocityNode(pA.xyz) : vec4(0) });
   const sprites = new THREE.Sprite(material);
   sprites.count = N;
   sprites.frustumCulled = false;

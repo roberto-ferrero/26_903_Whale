@@ -111,7 +111,7 @@ params.add('oceano', ocean.state, () => ocean.apply(), Object.keys(ocean.state).
 params.add('agua', water.state, water.apply, Object.keys(water.state).filter((k) => k !== 'info'));
 params.add('bajoagua', under.state, under.apply, Object.keys(under.state).filter((k) => k !== 'info'));
 params.add('calidad', quality.state, quality.apply, ['profile']);
-params.add('peces', fish.state, fish.apply, Object.keys(fish.state).filter((k) => k !== 'info'));
+params.add('peces', fish.state, fish.apply, Object.keys(fish.state).filter((k) => !['info', 'loners', 'lonerSize'].includes(k)));
 params.add('post', post.state, post.apply);
 params.add('audio', audio.state, audio.apply, ['volume', 'ocean', 'effects', 'song']); // sin 'enabled': el navegador exige un clic
 params.add('secuencia', sequence.state, () => {}, ['loop', 'deepTime', 'deepDepth', 'surfaceTime', 'surfaceDepth', 'autoCamera']);

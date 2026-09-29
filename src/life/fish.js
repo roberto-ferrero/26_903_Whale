@@ -25,7 +25,7 @@ export const FISH_DEFAULTS = {
   cohesion: 1,
   flee: 1,
   schoolDepth: 7, // m bajo la superficie (centro del cardumen)
-  loners: 4,
+  loners: 0, // peces sueltos: desactivados de momento (29/09/2026)
   lonerSize: 0.7,
 };
 
@@ -66,7 +66,7 @@ export function createFish({ scene, ocean, water, camera }) {
   const geo = fishGeometry();
 
   // ------------------------------------------------------------------ material (coletazo + contrasombreado)
-  const makeMaterial = (paramsAttr, base, belly) => {
+  const makeMaterial = (paramsAttr, motionAttr, base, belly) => {
     const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.35, metalness: 0.2, side: THREE.DoubleSide });
     const prm = instancedBufferAttribute(paramsAttr); // x fase, y frecuencia (Hz), z amplitud
     const z = positionLocal.z;
@@ -80,19 +80,23 @@ export function createFish({ scene, ocean, water, camera }) {
     m.colorNode = mix(vec3(...belly), vec3(...base), smoothstep(0.35, 0.75, up)).add(stripe);
     // luz bajo el agua (absorción y cáusticas) y sin velocidad propia para el motion blur
     m.outputNode = output.mul(vec4(ocean.underLightNode(positionWorld), 1));
-    m.mrtNode = mrt({ velocity: vec4(0) });
+    // velocidad en pantalla = movimiento de la cámara + el del propio pez en este fotograma; con 0,
+    // el TAA los convertía en rayas (los peces son tan finos que no puede descartar la historia)
+    const motion = instancedBufferAttribute(motionAttr);
+    m.mrtNode = mrt({ velocity: ocean.cameraVelocityNode(positionWorld, positionWorld.sub(motion)) });
     return m;
   };
 
   function makeGroup(max, base, belly) {
     const params = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
-    const mesh = new THREE.InstancedMesh(geo, makeMaterial(params, base, belly), max);
+    const motion = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3); // desplazamiento en el fotograma
+    const mesh = new THREE.InstancedMesh(geo, makeMaterial(params, motion, base, belly), max);
     mesh.frustumCulled = false;
     mesh.count = 0;
     scene.add(mesh);
     const pos = new Float32Array(max * 3), vel = new Float32Array(max * 3);
     for (let i = 0; i < max; i++) params.setXYZ(i, Math.random() * 6.28, 3, 0.08);
-    return { mesh, params, pos, vel, max };
+    return { mesh, params, motion, pos, vel, max };
   }
   const school = makeGroup(MAX_SCHOOL, [0.2, 0.3, 0.38], [0.85, 0.88, 0.9]);
   const loners = makeGroup(MAX_LONERS, [0.18, 0.24, 0.2], [0.75, 0.72, 0.62]);
@@ -198,7 +202,7 @@ export function createFish({ scene, ocean, water, camera }) {
   }
 
   function updateLoners(dt, level) {
-    const n = Math.min(state.loners, MAX_LONERS);
+    const n = 0; // peces sueltos desactivados de momento (se conserva el código para recuperarlos)
     const { pos, vel } = loners;
     for (let i = 0; i < n; i++) {
       lonerTimers[i] -= dt;
@@ -227,7 +231,7 @@ export function createFish({ scene, ocean, water, camera }) {
     return n;
   }
 
-  function writeInstances(g, n, size, wagScale) {
+  function writeInstances(g, n, size, wagScale, dt) {
     for (let i = 0; i < n; i++) {
       tmpP.set(g.pos[i * 3], g.pos[i * 3 + 1], g.pos[i * 3 + 2]);
       dir.set(g.vel[i * 3], g.vel[i * 3 + 1], g.vel[i * 3 + 2]);
@@ -240,10 +244,12 @@ export function createFish({ scene, ocean, water, camera }) {
       // coletazo: más rápido cuanto más rápido nada (en longitudes de cuerpo por segundo)
       g.params.setY(i, Math.min(1.2 + (sp / size) * 0.35, 9) * wagScale);
       g.params.setZ(i, 0.09);
+      g.motion.setXYZ(i, g.vel[i * 3] * dt, g.vel[i * 3 + 1] * dt, g.vel[i * 3 + 2] * dt);
     }
     g.mesh.count = n;
     g.mesh.instanceMatrix.needsUpdate = true;
     g.params.needsUpdate = true;
+    g.motion.needsUpdate = true;
   }
 
   function apply() {
@@ -274,9 +280,9 @@ export function createFish({ scene, ocean, water, camera }) {
       for (const p of water.probes) if (p.role === 'body' || p.role === 'head' || p.role === 'tail') whalePts.push({ x: p.pos.x, y: p.pos.y, z: p.pos.z, r: p.r });
       const n = updateSchool(dt, level);
       const m = updateLoners(dt, level);
-      writeInstances(school, n, state.schoolSize, 1);
-      writeInstances(loners, m, state.lonerSize, 0.6);
-      state.info = `${n} en el cardumen · ${m} sueltos`;
+      writeInstances(school, n, state.schoolSize, 1, dt);
+      writeInstances(loners, m, state.lonerSize, 0.6, dt);
+      state.info = `${n} peces en el cardumen`;
     },
     /** Pruebas: centro del cardumen y dispersión. */
     stats() {
