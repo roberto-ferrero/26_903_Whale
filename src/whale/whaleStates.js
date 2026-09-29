@@ -71,6 +71,7 @@ export function createWhaleStates(scene, whale, anim, waterState) {
   let swimTime = 0;
   let plan = null;
   let cycle = 0; // posición en AUTO_CYCLE
+  let getWaterHeight = null, waveOffset = 0;
   const flags = { body: false, recover: false, apex: false, impact: false, blow: false };
   let lastHeadY = null;
   const listeners = [];
@@ -240,8 +241,20 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     state.planTime += dt;
     const t = state.planTime;
     const ph = plan.sample(Math.min(t, plan.duration), P, Q);
+    // respiración en arco: el plan va referido al nivel medio del mar; con oleaje, el espiráculo
+    // asomaría de más en un seno o nada en una cresta. Mientras dura el arqueo, la ballena sigue la
+    // altura local del agua delante de ella (suavizada)
+    if (plan.kind === 'breath' && getWaterHeight) {
+      const a = plan.archAt ? plan.archAt(Math.min(t, plan.duration)) : null;
+      const k = a && params.archFront > 0 ? a.front / (params.archFront * THREE.MathUtils.DEG2RAD) : 0;
+      const hx = P.x + Math.sin(plan.heading) * 3.3, hz = P.z + Math.cos(plan.heading) * 3.3;
+      const target = getWaterHeight(hx, hz) - waterState.waterLevel;
+      waveOffset += (target - waveOffset) * Math.min(1, dt * 2.5);
+      P.y += waveOffset * k;
+    }
     place(P, Q, dt);
     if (ph.id !== state.current && t < plan.duration) setState(ph.id);
+    if (plan.archAt) Object.assign(archNow, plan.archAt(Math.min(t, plan.duration)));
     if (plan.kind === 'breath') {
       if (!flags.blow && t >= plan.blowTime) { flags.blow = true; emit('blow'); }
       if (t >= plan.duration) endPlan();
@@ -276,6 +289,30 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     updatePathVisibility();
     beginTransition();
     setState('nadar');
+  }
+
+  // arqueo del cuerpo (respiración en arco): se suma a la animación girando los huesos de la
+  // columna sobre su eje lateral (X local). Delante (Head: el quiebro queda cerca del espiráculo;
+  // el perfil de la cabeza es casi recto y sin él asomaba entera): cabeza hacia abajo (+);
+  // detrás (Spine → Spine.007): cola hacia abajo (−). Se deshace antes de cada actualización del
+  // mezclador por si algún hueso no lo reescribe.
+  const boneByLabel = (n) => whale.skinned[0].skeleton.bones.find((b) => (b.userData.name ?? b.name) === n);
+  const ARCH_BONES = [
+    ...['Head'].map((n) => ({ bone: boneByLabel(n), part: 'front', sign: 1, share: 1 })),
+    ...['Spine', 'Spine.001', 'Spine.002', 'Spine.008', 'Spine.007'].map((n) => ({ bone: boneByLabel(n), part: 'rear', sign: -1, share: 1 / 5 })),
+  ].filter((a) => a.bone).map((a) => ({ ...a, pre: new THREE.Quaternion(), applied: false }));
+  const archNow = { front: 0, rear: 0 };
+  const AXIS_X = new THREE.Vector3(1, 0, 0), qArch = new THREE.Quaternion();
+  function undoArch() {
+    for (const a of ARCH_BONES) if (a.applied) { a.bone.quaternion.copy(a.pre); a.applied = false; }
+  }
+  function applyArch() {
+    if (Math.abs(archNow.front) < 1e-4 && Math.abs(archNow.rear) < 1e-4) return;
+    for (const a of ARCH_BONES) {
+      a.pre.copy(a.bone.quaternion);
+      a.bone.quaternion.multiply(qArch.setFromAxisAngle(AXIS_X, a.sign * a.share * archNow[a.part]));
+      a.applied = true;
+    }
   }
 
   // amplitud del aleteo: el clip de nado mueve la punta de la cola ±3 m; junto a la superficie la
@@ -320,6 +357,8 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     on(fn) { listeners.push(fn); },
     jump,
     breathe,
+    /** Altura del agua en (x, z) (con oleaje): la respiración en arco la sigue. */
+    setWaterHeight(fn) { getWaterHeight = fn; },
     /** Reinicia el ciclo automático (respirar / saltar) desde el principio. */
     resetCycle() { cycle = 0; },
     setEnabled,
@@ -357,13 +396,18 @@ export function createWhaleStates(scene, whale, anim, waterState) {
       whale.mixer.update(0);
     },
     update(dt) {
+      undoArch();
       if (params.enabled) strokeWeight(dt);
       anim.update(dt);
+      archNow.front = 0; archNow.rear = 0;
       if (!params.enabled) return;
       state.timeInState += dt;
       if (state.current === 'nadar' && !plan) swim(dt);
       else if (plan) followPlan(dt);
+      applyArch();
     },
+    /** Arqueo aplicado ahora (rad): cabeza y parte trasera. */
+    arch: archNow,
     /** Posición del centro de masas y rumbo actuales (para cámaras y ayudas). */
     getPose(outPos) {
       root.getWorldPosition(outPos);

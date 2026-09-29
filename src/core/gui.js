@@ -1,5 +1,6 @@
 import GUI from 'lil-gui';
 import { CAMERA_MODES, RAILS } from './cameras.js';
+import { BREATH_STYLES } from '../whale/breathPlanner.js';
 
 /**
  * Panel lil-gui (Fase 2.2): una carpeta por módulo. Los estados de los módulos están registrados
@@ -95,9 +96,16 @@ export function createGui(m) {
   fTraj.add(p, 'submergeDepth', 1, 15, 0.5).name('Profundidad tras impacto (m)');
   fTraj.add(p, 'recoverTime', 1, 15, 0.5).name('Duración recuperación (s)');
   const fBreath = fWhale.addFolder('Respiración (próxima)');
+  fBreath.add(p, 'breathStyle', BREATH_STYLES).name('Estilo');
   fBreath.add(p, 'breathAngle', 10, 60, 1).name('Inclinación al subir (°)');
-  fBreath.add(p, 'breathSurfaceTime', 1.5, 12, 0.1).name('Tiempo en superficie (s)');
-  fBreath.add(p, 'breathRootDepth', 0, 2, 0.05).name('Hundimiento al respirar (m)');
+  fBreath.add(p, 'arcTime', 2, 10, 0.1).name('Arco: duración (s)');
+  fBreath.add(p, 'arcLead', 0, 35, 1).name('Arco: cabeza levantada (°)');
+  fBreath.add(p, 'arcExit', 5, 45, 1).name('Arco: ángulo de salida (°)');
+  fBreath.add(p, 'archFront', 0, 25, 1).name('Arco: flexión de la cabeza (°)');
+  fBreath.add(p, 'archRear', 0, 35, 1).name('Arco: cola abajo (°)');
+  fBreath.add(p, 'breathExposure', -0.3, 1, 0.05).name('Arco: asoma el espiráculo (m)');
+  fBreath.add(p, 'breathSurfaceTime', 1.5, 12, 0.1).name('Superficie: tiempo (s)');
+  fBreath.add(p, 'breathRootDepth', 0, 2, 0.05).name('Superficie: hundimiento (m)');
   fBreath.add(p, 'breathDiveAngle', 8, 45, 1).name('Inclinación al bajar (°)');
   fBreath.add(p, 'blowHeight', 1, 9, 0.1).name('Altura del soplido (m)');
   fBreath.add(p, 'blowAmount', 0, 3, 0.05).name('Cantidad de soplido');

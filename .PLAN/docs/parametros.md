@@ -103,9 +103,16 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
+| Estilo | lista | Arco (continua) | Arco (continua) / En superficie | `breathStyle` |
 | Inclinación al subir (°) | número | 28 | 10 – 60 | `breathAngle` |
-| Tiempo en superficie (s) | número | 4.5 | 1.5 – 12 | `breathSurfaceTime` |
-| Hundimiento al respirar (m) | número | 0.7 | 0 – 2 | `breathRootDepth` |
+| Arco: duración (s) | número | 4.5 | 2 – 10 | `arcTime` |
+| Arco: cabeza levantada (°) | número | 22 | 0 – 35 | `arcLead` |
+| Arco: ángulo de salida (°) | número | 24 | 5 – 45 | `arcExit` |
+| Arco: flexión de la cabeza (°) | número | 22 | 0 – 25 | `archFront` |
+| Arco: cola abajo (°) | número | 14 | 0 – 35 | `archRear` |
+| Arco: asoma el espiráculo (m) | número | 0.2 | -0.3 – 1 | `breathExposure` |
+| Superficie: tiempo (s) | número | 4.5 | 1.5 – 12 | `breathSurfaceTime` |
+| Superficie: hundimiento (m) | número | 0.7 | 0 – 2 | `breathRootDepth` |
 | Inclinación al bajar (°) | número | 25 | 8 – 45 | `breathDiveAngle` |
 | Altura del soplido (m) | número | 4 | 1 – 9 | `blowHeight` |
 | Cantidad de soplido | número | 1 | 0 – 3 | `blowAmount` |
@@ -453,7 +460,7 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | Módulo | Claves |
 |---|---|
 | `tiempo` | `timeScale`, `stepSize` |
-| `ballena` | `enabled`, `depth`, `swimSpeed`, `wander`, `radius`, `autoJump`, `autoBreath`, `autoInterval`, `blendTime`, `surfaceStroke`, `showPath`, `ascentTime`, `exitSpeed`, `exitAngle`, `roll`, `rollSide`, `landingPitch`, `submergeTime`, `submergeDepth`, `recoverTime`, `breathAngle`, `breathSurfaceTime`, `breathRootDepth`, `breathDiveAngle`, `blowHeight`, `blowAmount` |
+| `ballena` | `enabled`, `depth`, `swimSpeed`, `wander`, `radius`, `autoJump`, `autoBreath`, `autoInterval`, `blendTime`, `surfaceStroke`, `showPath`, `ascentTime`, `exitSpeed`, `exitAngle`, `roll`, `rollSide`, `landingPitch`, `submergeTime`, `submergeDepth`, `recoverTime`, `breathStyle`, `breathAngle`, `breathSurfaceTime`, `breathRootDepth`, `breathDiveAngle`, `blowHeight`, `blowAmount`, `arcTime`, `arcLead`, `arcExit`, `archFront`, `archRear`, `breathExposure` |
 | `camara` | `mode`, `rail`, `transition`, `hardCuts`, `followSmoothing`, `railSpeed`, `fov`, `autoRotate`, `rotateSpeed` |
 | `luz` | `toneMapping`, `exposure`, `environment`, `sunIntensity`, `sunColor`, `sunElevation`, `sunAzimuth`, `hemiIntensity`, `background`, `fog`, `fogNear`, `fogFar` |
 | `cielo` | `enabled`, `model`, `ozone`, `multiScattering`, `place`, `lat`, `lon`, `tz`, `date`, `hour`, `animate`, `timeSpeed`, `turbidity`, `rayleigh`, `mieCoefficient`, `mieDirectionalG`, `skyBrightness`, `sunStrength`, `ambientStrength`, `moonStrength`, `stars`, `cloudLight`, `fogDensity` |

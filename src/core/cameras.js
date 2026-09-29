@@ -95,10 +95,10 @@ export function createCameras(viewer, getWhalePose, waterState, getWhaleState, g
           .setY(w + 1.4 - 4.6 * smoothstep(Math.min(Math.max((tShot - 1) / 5, 0), 1)));
         look.copy(A).setY(Math.max(A.y, w - 3));
         break;
-      case 'Soplido (cerca)': // respiración: de lado y algo por delante, a 2 m del agua; encuadra lomo y soplido
-        out.copy(A).addScaledVector(r, 17).addScaledVector(f, 6 + 0.6 * tShot);
-        out.y = Math.max(w + 1.2, (getWaterHeight ? getWaterHeight(out.x, out.z) : w) + 2);
-        look.copy(A).addScaledVector(f, 2).setY(w + 1.6);
+      case 'Soplido (cerca)': // respiración: de lado y algo por delante, a 3,5 m del agua (asoma poco: más bajo, las olas la tapan)
+        out.copy(A).addScaledVector(r, 15).addScaledVector(f, 7 + 0.6 * tShot);
+        out.y = Math.max(w + 2.5, (getWaterHeight ? getWaterHeight(out.x, out.z) : w) + 3.5);
+        look.copy(A).addScaledVector(f, 3).setY(w + 1.2);
         break;
       default:
         out.copy(A).add(new THREE.Vector3(16, 5, 12));

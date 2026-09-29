@@ -72,6 +72,7 @@ const look = createWhaleLook(whale);
 const helpers = createHelpers(viewer.scene, viewer.sun, whale, lod.state);
 helpers.setWaterShadow((p) => clouds.cloudShadowNode(p)); // sombras de nubes sobre el agua (Fase 3.5)
 const fsm = createWhaleStates(viewer.scene, whale, anim, helpers.state);
+fsm.setWaterHeight((x, z) => ocean.heightAt(x, z)); // la respiración sigue la ola local
 const skeleton = createSkeletonHelpers(viewer.scene, whale);
 const water = createInteraction({ renderer: viewer.renderer, scene: viewer.scene, whale, ocean, ripples, fsm });
 const under = createUnderwater({ renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, ocean }); // Fase 6

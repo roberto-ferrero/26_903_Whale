@@ -87,17 +87,22 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
   fsm.on((name) => { if (state.enabled && (name === 'surface_exit' || name === 'impact' || name === 'apex')) pending.push(name); });
 
   // ------------------------------------------------------------------ soplido al respirar (29/09/2026)
-  // espiráculo en el espacio del hueso Head: sobre la cabeza, 2,8 m por detrás de la punta del
-  // hocico (medido en la malla: el punto más alto de la línea media a esa altura)
+  // espiráculo en el espacio del hueso Head: sobre la cabeza, ~2,3 m por detrás de la punta del
+  // hocico (medido en la malla: el punto más alto de la línea media a esa altura; adelantado 0,5 m
+  // el 29/09/2026 a petición de Roberto)
   const headBone = bones.get('Head');
-  const BLOWHOLE = new THREE.Vector3(0, 0.7, -0.98);
+  const BLOWHOLE = new THREE.Vector3(0, 1.25, -0.88);
   const BLOW_TIME = 1.4; // s que dura la exhalación
   const blowAcc = { acc: { vapor: 0, drop: 0, spray: 0 } };
   const blowPos = new THREE.Vector3();
   let blowT = -1;
   fsm.on((name) => { if (name === 'blow' && state.enabled && headBone) blowT = 0; });
   /** Posición del espiráculo en el mundo (para el soplido, el audio y las pruebas). */
-  const blowhole = (out) => (headBone ? headBone.localToWorld(out.copy(BLOWHOLE)) : out.set(0, 0, 0));
+  const blowhole = (out) => {
+    if (!headBone) return out.set(0, 0, 0);
+    headBone.updateWorldMatrix(true, false);
+    return headBone.localToWorld(out.copy(BLOWHOLE));
+  };
 
   function blow(dt) {
     blowT += dt;

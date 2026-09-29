@@ -6,6 +6,50 @@
 - que la secuencia sea «nada, respira, nada, salta, nada, respira, nada, respira»;
 - que no haya saltos al cambiar de actitud.
 
+## Respiración en arco (continua), el estilo por defecto (29/09/2026)
+
+Petición de Roberto:
+- el espiráculo está un poco más adelante;
+- la respiración debe ser más orgánica, porque la ballena se paraba tras el soplido;
+- que se arquee con la cola abajo, de forma que asome poco más que la nariz, y que sople y se sumerja en un movimiento continuo de avance y giro;
+- conservar el movimiento anterior como otra opción.
+
+| Asoma | Sopla |
+|---|---|
+| ![](img/respiracion/arco_1_asoma.jpg) | ![](img/respiracion/arco_2_soplido.jpg) |
+| **Sigue avanzando y girando** | **Se sumerge (el penacho queda atrás)** |
+| ![](img/respiracion/arco_3_gira.jpg) | ![](img/respiracion/arco_4_sumerge.jpg) |
+
+- **Estilos:** carpeta *Respiración (próxima)* → **Estilo**. *Arco (continua)* es el de por defecto; *En superficie* es el primero, que se conserva tal cual (abajo).
+- **Espiráculo adelantado 0,5 m:** ahora está sobre la línea media, ~2,3 m por detrás de la punta del hocico (offset en el hueso Head: 0; 1,25; −0,88).
+- **Movimiento (`planBreathArc`):** velocidad constante de principio a fin, sin tramo en superficie.
+  - **Trayectoria:** una curva en S sube hasta entrar en un **arco**, que pasa de subir (6°) a bajar (24°) en 4,5 s. Después, la inmersión hasta la profundidad de partida.
+  - **Cabeceo:** es el de la trayectoria más un **adelanto** que crece en los 2,5 s antes del arco y desaparece al bajar. La cabeza va levantada al soplar (~30°) y el giro hacia delante es continuo (de +30° a −6° en 4 s, sin pararse).
+  - **Arqueo del cuerpo:** se suma a la animación girando huesos de la columna sobre su eje lateral.
+    - **Cabeza hacia abajo** (22°, hueso Head): el perfil superior de la cabeza de este modelo es casi recto, sin pico en el espiráculo. Sin la flexión asomaba entera (4,3 m); con el quiebro en el hueso Head, a 1,3 m del espiráculo, asoma solo la zona alrededor.
+    - **Cola hacia abajo** (14°, repartidos entre Spine y Spine.007).
+    - Entra en 3 s antes del arco y se deshace en 3 s al bajar. Se deshace cada fotograma antes del mezclador, así no se acumula.
+  - **Altura calculada para el soplido:** con un modelo de la cabeza (pivote y espiráculo medidos en la pose real; error < 0,1 m), el plan busca la altura del arco para que el espiráculo, en su punto más alto, asome *Arco: asoma el espiráculo* (0,2 m).
+  - **Soplido:** en ese punto, 0,25 s antes del máximo.
+  - **Estados:** «respirar» empieza 1,5 s antes del soplido, para que el director ya esté en el plano de superficie.
+  - **Con oleaje:** mientras dura el arqueo, la ballena sigue la altura local del agua delante de ella (suavizada). Sin esto, en un seno de ola el espiráculo asomaba 0,9 m y en una cresta no llegaba a salir.
+- **Medido** (mar en calma, fotograma a fotograma):
+  - asoma solo la cabeza, entre 1 y 4 m por delante del centro de masas, como mucho 0,33 m y durante ~2 s;
+  - el lomo, la joroba y la cola quedan bajo el agua;
+  - con oleaje normal, en tres respiraciones, el espiráculo asoma 0,2-0,34 m en el soplido;
+  - sin picos de giro en 110 s de ciclo automático.
+- **Plano *Soplido (cerca)*:** ahora a 15 m y a 3,5 m sobre el agua. Asoma tan poco que desde 2 m las olas lo tapaban.
+- **Controles nuevos (carpeta *Respiración (próxima)*):**
+  - estilo;
+  - duración del arco;
+  - cabeza levantada;
+  - ángulo de salida;
+  - flexión de la cabeza;
+  - cola abajo;
+  - lo que asoma el espiráculo.
+
+## Primera versión: respiración en superficie (se conserva como estilo *En superficie*)
+
 | Sube a respirar | Soplido (plano *Soplido (cerca)*) |
 |---|---|
 | ![](img/respiracion/secuencia_1_subir.jpg) | ![](img/respiracion/secuencia_2_soplido.jpg) |
@@ -46,7 +90,7 @@ Nuevos estados de la máquina: **subir → respirar → bajar**. Como en el salt
 - **Altura:**
   - El centro de masas queda 0,7 m bajo la superficie.
   - El espiráculo está ~0,75 m por encima del centro de masas, así que asoma justo, con el lomo y la aleta dorsal.
-  - Medido en la malla: el espiráculo está sobre la línea media, 2,8 m por detrás de la punta del hocico (offset en el espacio del hueso Head: 0; 0,7; −0,98).
+  - Medido en la malla: el espiráculo está sobre la línea media; en esta primera versión estaba 2,8 m por detrás de la punta del hocico (offset en el hueso Head: 0; 0,7; −0,98). Después se adelantó 0,5 m (ver el estilo en arco).
 - **Cola bajo el agua:**
   - El clip `swim_idle` mueve la punta de la cola ±3 m (6,35 m de recorrido). Junto a la superficie, la aleta caudal salía hasta 3 m del agua en cada brazada.
   - **Brazada más corta cerca de la superficie:** el peso de los clips de nado baja a 0,25 junto a la superficie y vuelve a 1 hacia los 9 m de profundidad, con un cambio suave. Con peso menor que 1, el mezclador combina el clip con la pose de reposo. En el salto se mantiene el peso completo.
@@ -87,6 +131,6 @@ Nuevos estados de la máquina: **subir → respirar → bajar**. Como en el salt
 
 ## Límites
 
-- **Cuerpo rígido:** no se arquea al respirar (el *roll-through* real). Solo cabecea como un cuerpo rígido y la animación de nado pone la ondulación.
+- **Arqueo solo en arco:** el estilo *En superficie* no arquea el cuerpo. El arco lo hace con giros de huesos sumados a la animación, no con una animación propia. Si se exagera (más de ~30°), la malla se deforma en los quiebros.
 - **Sin inmersión profunda:** no hay *fluke-up dive* (la cola en alto antes de bajar hondo); se podría añadir como variante de la última respiración.
 - **Soplido fijo:** siempre es igual, sin variaciones entre respiraciones (la primera tras una inmersión larga suele ser más potente).
