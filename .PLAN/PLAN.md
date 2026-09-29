@@ -295,6 +295,7 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
     - exhala 0,5 s antes de asomar (burbujas bajo el agua) y, al sumergirse, suelta un reguero de burbujas que va disminuyendo; la cola no sale del agua;
     - el surtidor sale siempre, aunque una ola tape el espiráculo: sale desde la superficie y no se corta;
     - espuma y un anillo de gotas al romper la superficie, y espuma alrededor de la cabeza mientras sopla;
+    - las burbujas siguen una corriente submarina propia (0,25 m/s, ajustable): antes se las llevaba el viento;
     - la versión anterior se conserva como estilo *En superficie*.
   - Detalle: [docs/respiracion.md](docs/respiracion.md).
 - [x] **Valores por defecto y ayudas** (29/09/2026, petición de Roberto):

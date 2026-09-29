@@ -61,6 +61,11 @@ Petición de Roberto:
   - **Mientras sopla:** espuma alrededor de la cabeza, más al principio y menos después.
   - **Control:** *Ballena ↔ agua › Espuma al respirar* (0-3).
 
+- **Corriente submarina** (29/09/2026, petición de Roberto):
+  - **Problema:** las burbujas (las del soplido y todas las demás) se desplazaban con el viento del aire: su velocidad tendía al 60 % de la del viento del océano, ~5,4 m/s con los 9 m/s por defecto.
+  - **Ahora:** las burbujas siguen su propia corriente, en *Ballena ↔ agua › Corriente submarina* (0,25 m/s por defecto) y *Dirección de la corriente* (45°). El viento sigue arrastrando las gotas, el spray, la bruma y el vapor sobre el agua.
+  - **Nieve marina:** mantiene su deriva lenta propia, sin cambios.
+
 | Rompe la superficie y sopla | La espuma queda al sumergirse |
 |---|---|
 | ![](img/respiracion/espuma_1.jpg) | ![](img/respiracion/espuma_2.jpg) |

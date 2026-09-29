@@ -298,6 +298,8 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Cortinas (agua del cuerpo) | número | 1 | 0 – 3 | `curtains` |
 | Burbujas | número | 1 | 0 – 3 | `bubbles` |
 | Espuma al respirar | número | 1 | 0 – 3 | `breathFoam` |
+| Corriente submarina (m/s) | número | 0.25 | 0 – 2 | `current` |
+| Dirección de la corriente (°) | número | 45 | 0 – 360 | `currentDirection` |
 | Fuerza de las ondas | número | 1 | 0 – 3 | `waves` |
 | Velocidad de las ondas (m/s) | número | 4.5 | 1 – 10 | `rippleSpeed` |
 | Estela | número | 1 | 0 – 3 | `wake` |
@@ -468,7 +470,7 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | `cielo` | `enabled`, `model`, `ozone`, `multiScattering`, `place`, `lat`, `lon`, `tz`, `date`, `hour`, `animate`, `timeSpeed`, `turbidity`, `rayleigh`, `mieCoefficient`, `mieDirectionalG`, `skyBrightness`, `sunStrength`, `ambientStrength`, `moonStrength`, `stars`, `cloudLight`, `fogDensity` |
 | `nubes` | `enabled`, `coverage`, `density`, `base`, `thickness`, `type`, `windSpeed`, `windDirection`, `scale`, `steps`, `lightSteps`, `maxDistance`, `resolution`, `temporal`, `shadows` |
 | `oceano` | `enabled`, `mode`, `waterType`, `level`, `windSpeed`, `windDirection`, `fetch`, `windAlign`, `swellHeight`, `swellPeriod`, `swellDirection`, `swellSpread`, `shortWaveCut`, `seed`, `choppiness`, `gAmplitude`, `gWavelength`, `gDirection`, `gSpread`, `gSteepness`, `scatterColor`, `clarity`, `sss`, `roughness`, `reflections`, `foam`, `foamJacobian`, `foamDecay`, `haze`, `refraction`, `buoys` |
-| `agua` | `enabled`, `splashes`, `density`, `sizeScale`, `brightness`, `waves`, `rippleSpeed`, `foamLife`, `wake`, `curtains`, `bubbles`, `breathFoam`, `dynamicWet`, `showProbes` |
+| `agua` | `enabled`, `splashes`, `density`, `sizeScale`, `brightness`, `waves`, `rippleSpeed`, `foamLife`, `wake`, `curtains`, `bubbles`, `breathFoam`, `current`, `currentDirection`, `dynamicWet`, `showProbes` |
 | `bajoagua` | `enabled`, `godRays`, `steps`, `scattering`, `caustics`, `causticSharpness`, `surfaceCaustics`, `rayClouds`, `distortion`, `chroma`, `blur`, `vignette`, `lensDrops`, `snow` |
 | `calidad` | `profile` |
 | `peces` | `enabled`, `schoolCount`, `schoolSize`, `schoolSpeed`, `separation`, `alignment`, `cohesion`, `flee`, `schoolDepth`, `schoolDistance` |

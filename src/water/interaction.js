@@ -32,6 +32,8 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     curtains: 1,
     bubbles: 1, // Fase 6.6
     breathFoam: 1, // espuma al romper la superficie al respirar (29/09/2026)
+    current: 0.25, // m/s: corriente submarina que arrastra las burbujas (29/09/2026)
+    currentDirection: 45, // grados (hacia donde va; 0 = norte, como el viento)
     dynamicWet: true,
     showProbes: false,
     info: '',
@@ -45,7 +47,7 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     })
     : {
       emit() {}, update() {}, set visible(v) {}, stats: { spawned: 0 },
-      uniforms: { wind: { value: new THREE.Vector3() }, sizeScale: { value: 1 }, brightness: { value: 1 } },
+      uniforms: { wind: { value: new THREE.Vector3() }, current: { value: new THREE.Vector3() }, sizeScale: { value: 1 }, brightness: { value: 1 } },
     };
   if (!ripples) ripples = { uniforms: { c: { value: 0 }, foamTau: { value: 0 } }, addSource() {}, update() {} };
 
@@ -230,6 +232,8 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     wind2.set(Math.sin(a), -Math.cos(a)).multiplyScalar(ocean.state.windSpeed * 0.03);
     windVec.set(Math.sin(a), 0, -Math.cos(a)).multiplyScalar(ocean.state.windSpeed * 0.6);
     splash.uniforms.wind.value.copy(windVec);
+    const ca = THREE.MathUtils.degToRad(state.currentDirection);
+    splash.uniforms.current.value.set(Math.sin(ca), 0, -Math.cos(ca)).multiplyScalar(state.current);
     splash.uniforms.sizeScale.value = state.sizeScale;
     splash.uniforms.brightness.value = state.brightness;
 

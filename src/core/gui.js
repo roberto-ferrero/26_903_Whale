@@ -270,6 +270,8 @@ export function createGui(m) {
   fWater.add(wa, 'curtains', 0, 3, 0.05).name('Cortinas (agua del cuerpo)');
   fWater.add(wa, 'bubbles', 0, 3, 0.05).name('Burbujas');
   fWater.add(wa, 'breathFoam', 0, 3, 0.05).name('Espuma al respirar');
+  fWater.add(wa, 'current', 0, 2, 0.01).name('Corriente submarina (m/s)');
+  fWater.add(wa, 'currentDirection', 0, 360, 1).name('Dirección de la corriente (°)');
   fWater.add(wa, 'waves', 0, 3, 0.05).name('Fuerza de las ondas');
   fWater.add(wa, 'rippleSpeed', 1, 10, 0.1).name('Velocidad de las ondas (m/s)');
   fWater.add(wa, 'wake', 0, 3, 0.05).name('Estela');

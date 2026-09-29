@@ -33,6 +33,7 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
     emitters: uniformArray(Array.from({ length: MAX_EMITTERS * 4 }, () => new THREE.Vector4()), 'vec4'),
     numEmitters: uniform(0),
     wind: uniform(new THREE.Vector3()),
+    current: uniform(new THREE.Vector3()), // corriente submarina: arrastra las burbujas (no el viento)
     sunDir: uniform(new THREE.Vector3(0, 1, 0)),
     sunColor: uniform(new THREE.Color(1, 1, 1)),
     ambient: uniform(new THREE.Color(0.3, 0.4, 0.5)),
@@ -84,7 +85,8 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
       const vel = v.xyz.add(vec3(0, grav, 0).mul(u.dt)).toVar();
       // rozamiento hacia el viento (la bruma se va con él; el vapor del soplido, más despacio:
       // si no, con viento fresco desaparecía del plano en menos de 1 s)
-      const wind = select(isVapor, u.wind.mul(0.3), u.wind);
+      // las burbujas, bajo el agua, las lleva la corriente submarina (antes, por error, el viento)
+      const wind = select(isBubble, u.current, select(isVapor, u.wind.mul(0.3), u.wind));
       vel.assign(wind.add(vel.sub(wind).mul(exp(drag.negate().mul(u.dt)))));
       const pos = p.xyz.add(vel.mul(u.dt));
       p.assign(vec4(pos, p.w.add(u.dt)));
