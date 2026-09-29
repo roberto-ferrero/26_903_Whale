@@ -293,6 +293,7 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
     - sopla y se sumerge en el mismo movimiento, siguiendo la ola local;
     - espiráculo adelantado 0,5 m;
     - exhala 0,5 s antes de asomar (burbujas bajo el agua) y, al sumergirse, suelta un reguero de burbujas que va disminuyendo; la cola no sale del agua;
+    - el surtidor sale siempre, aunque una ola tape el espiráculo: sale desde la superficie y no se corta;
     - la versión anterior se conserva como estilo *En superficie*.
   - Detalle: [docs/respiracion.md](docs/respiracion.md).
 

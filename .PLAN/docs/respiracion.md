@@ -39,12 +39,22 @@ Petición de Roberto:
   - con oleaje normal, en tres respiraciones, el espiráculo asoma 0,2-0,34 m en el soplido;
   - sin picos de giro en 110 s de ciclo automático.
 - **Exhala antes de asomar y burbujas al sumergirse** (29/09/2026, petición de Roberto: la ballena economiza el tiempo en superficie):
-  - **Exhalación anticipada:** empieza *Arco: exhala antes de asomar* (0,5 s) antes de que el espiráculo salga del agua. Mientras sigue bajo el agua, la exhalación sale como un borbotón de burbujas (3200/s, de 3 a 15 cm). En cuanto asoma pasa a vapor, gotas y spray. Dura 1,8 s en total.
+  - **Exhalación anticipada:** empieza *Arco: exhala antes de asomar* (0,5 s) antes de que el espiráculo salga del agua. Mientras sigue bajo el agua, la exhalación sale como un borbotón de burbujas (3200/s, de 3 a 15 cm). En cuanto asoma pasa al surtidor (1,4 s).
   - **Burbujas al sumergirse:** acabado el soplido, mientras el espiráculo está bajo el agua sale un reguero de burbujas más pequeñas (1,5-7 cm) que va disminuyendo (se reduce a la mitad cada ~1,1 s) durante 6 s.
   - **Medido** en tres respiraciones:
     - la exhalación empieza con el espiráculo 0,07-0,41 m bajo el agua y asoma 0,3-0,85 s después;
     - burbujas del reguero: ~900 → 300 → 80 cada 2 s;
     - la cola, en el gesto arqueado, queda siempre entre 0,7 y 1,8 m bajo el agua.
+
+- **El surtidor sale siempre** (29/09/2026, petición de Roberto: a veces no salía, porque pasaba una ola):
+  - **Causa:** durante la exhalación, cada fotograma con el espiráculo bajo el agua emitía solo burbujas. Si una ola lo tapaba durante toda la ventana, no había surtidor.
+  - **Ahora hay dos partes:** primero burbujas, *solo hasta que asoma* el espiráculo. Después, el surtidor (vapor, gotas y spray) con su duración completa (1,4 s), que ya no se corta aunque pase otra ola; si el espiráculo está tapado, sale de la superficie justo encima.
+  - **Si no asoma a tiempo** (lo previsto más 0,6 s), el surtidor sale igualmente, atravesando el agua.
+  - **Comprobado:**
+    - con mar fuerte (viento 14 m/s, mar de fondo 1,5 m), 14 de 14 respiraciones con surtidor completo;
+    - forzando que el espiráculo no asome nunca (asoma −0,5 m), 10 de 10 con surtidor desde la superficie.
+
+![Surtidor con el espiráculo tapado por el agua](img/respiracion/surtidor_forzado.jpg)
 
 | Exhala todavía bajo el agua | Reguero de burbujas al sumergirse |
 |---|---|

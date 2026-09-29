@@ -92,12 +92,17 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
   // el 29/09/2026 a petición de Roberto)
   const headBone = bones.get('Head');
   const BLOWHOLE = new THREE.Vector3(0, 1.25, -0.88);
-  const BLOW_TIME = 1.8; // s que dura la exhalación (empieza bajo el agua, justo antes de asomar)
+  // la exhalación tiene dos partes: burbujas mientras el espiráculo sigue bajo el agua y, al asomar,
+  // el surtidor (vapor y agua) con su duración completa. El surtidor sale SIEMPRE: si una ola tapa el
+  // espiráculo y no llega a asomar a tiempo, sale igualmente atravesando el agua desde la superficie,
+  // y una vez empezado no se corta aunque pase otra ola
+  const SPOUT_TIME = 1.4; // s del surtidor
   const TRAIL_TIME = 6; // s de burbujas al sumergirse después
   const blowAcc = { acc: { vapor: 0, drop: 0, spray: 0, bubble: 0 } };
   const blowPos = new THREE.Vector3();
-  let blowT = -1, trailT = -1;
-  fsm.on((name) => { if (name === 'blow' && state.enabled && headBone) blowT = 0; });
+  let blowT = -1, spoutT = -1, trailT = -1;
+  const stats = { spouts: 0, forcedSpouts: 0 };
+  fsm.on((name) => { if (name === 'blow' && state.enabled && headBone) { blowT = 0; spoutT = -1; trailT = -1; } });
   /** Posición del espiráculo en el mundo (para el soplido, el audio y las pruebas). */
   const blowhole = (out) => {
     if (!headBone) return out.set(0, 0, 0);
@@ -127,15 +132,28 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
 
   function blow(dt) {
     blowT += dt;
-    if (blowT > BLOW_TIME) { blowT = -1; trailT = 0; return; }
-    // ataque muy rápido y caída más lenta
-    const k = blowT < 0.12 ? blowT / 0.12 : Math.pow(1 - (blowT - 0.12) / (BLOW_TIME - 0.12), 1.4);
     blowhole(blowPos);
     const wl = ocean.heightAt(blowPos.x, blowPos.z);
     const P = fsm.params;
     const h = P.blowHeight, amt = P.blowAmount;
-    // todavía bajo el agua: la exhalación sale en burbujas (un borbotón que sube a la superficie)
-    if (blowPos.y < wl - 0.03) { blowBubbles(3200 * k * amt, dt, true); return; }
+    if (spoutT < 0) {
+      const under = blowPos.y < wl - 0.03;
+      // espera máxima bajo el agua: lo previsto (exhala antes de asomar) más un margen
+      const maxWait = (P.breathStyle === 'En superficie' ? 0 : P.blowLead ?? 0.5) + 0.6;
+      if (under && blowT < maxWait) {
+        // todavía bajo el agua: la exhalación sale en burbujas (un borbotón que sube a la superficie)
+        blowBubbles(3200 * Math.min(1, blowT / 0.12) * amt, dt, true);
+        return;
+      }
+      spoutT = 0;
+      stats.spouts++;
+      if (under) stats.forcedSpouts++;
+    }
+    spoutT += dt;
+    if (spoutT > SPOUT_TIME) { blowT = -1; spoutT = -1; trailT = 0; return; }
+    // surtidor: ataque muy rápido y caída más lenta; sale del espiráculo o, si está tapado por el
+    // agua, de la superficie justo encima
+    const k = spoutT < 0.12 ? spoutT / 0.12 : Math.pow(1 - (spoutT - 0.12) / (SPOUT_TIME - 0.12), 1.4);
     blowPos.y = Math.max(blowPos.y, wl + 0.05);
     const v0 = Math.sqrt(2 * 9.81 * h); // velocidad para que las gotas lleguen a esa altura
     const head = probes.find((p) => p.role === 'head');
@@ -307,5 +325,5 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     for (const m of probeMeshes) m.visible = state.showProbes;
   }
 
-  return { state, apply, update, probes, splash, ripples, blowhole };
+  return { state, apply, update, probes, splash, ripples, blowhole, blowStats: stats };
 }
