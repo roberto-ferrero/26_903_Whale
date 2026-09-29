@@ -216,6 +216,7 @@ export function createGui(m) {
   fUnder.add(us, 'info').name('Cámara').listen().disable();
   fUnder.add(us, 'godRays', 0, 8, 0.05).name('God rays').onChange(ua);
   fUnder.add(us, 'steps', 2, 48, 1).name('Pasos (god rays)').onChange(ua);
+  fUnder.add(us, 'rayClouds', 0, 1, 0.01).name('Las nubes apagan los haces').onChange(ua);
   fUnder.add(us, 'scattering', 0, 4, 0.05).name('Turbidez (dispersión)').onChange(ua);
   fUnder.add(us, 'caustics', 0, 3, 0.05).name('Cáusticas (ballena y partículas)').onChange(ua);
   fUnder.add(us, 'causticSharpness', 0, 1, 0.01).name('Nitidez de las cáusticas').onChange(ua);

@@ -20,12 +20,13 @@ import {
 export function createUnderwater({ renderer, scene, camera, ocean }) {
   const state = {
     enabled: true,
-    godRays: 5,
+    godRays: 3.2,
     steps: 16,
     scattering: 1, // turbidez: partículas que dispersan la luz
-    caustics: 1.5,
+    caustics: 0.3,
     causticSharpness: 0.75, // 0 = suaves, 1 = líneas muy finas
-    surfaceCaustics: 1,
+    surfaceCaustics: 0.5,
+    rayClouds: 0.5, // las nubes que tapan el sol apagan los haces (1 = del todo, físico)
     distortion: 1,
     chroma: 1,
     blur: 1,
@@ -132,7 +133,7 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
           const p = cameraPosition.add(rd.world.mul(t));
           const D = max(ou.level.sub(p.y), 0.0);
           const Tsurf = exp(vec3(ou.absorb).negate().mul(D.div(max(ou.sunRefr.y, 0.3))));
-          const shaft = max(mix(float(1), ocean.causticNode(p, true), u.godRays), 0.0);
+          const shaft = max(mix(float(1), ocean.shaftNode(p), u.godRays), 0.0);
           const Lsun = vec3(ou.sunRadiance).mul(Tsurf).mul(shaft).mul(phase).mul(sunUp).mul(0.15);
           const Lamb = vec3(ou.ambient).mul(exp(vec3(ou.absorb).negate().mul(D))).mul(0.5);
           inscatter.addAssign(Lsun.add(Lamb).mul(u.sigmaS).mul(exp(sigmaT.negate().mul(t))).mul(dt));
@@ -168,6 +169,7 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
     ou.caustics.value = state.caustics;
     ou.causticEps.value = 0.5 * (1 - state.causticSharpness) + 0.03;
     ou.surfaceCaustics.value = state.surfaceCaustics;
+    ou.rayClouds.value = state.rayClouds;
     u.distortion.value = state.distortion;
     u.chroma.value = state.chroma;
     u.blur.value = state.blur;

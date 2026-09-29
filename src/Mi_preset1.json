@@ -1,0 +1,11 @@
+{
+  "nombre": "Mi preset1",
+  "descripcion": "",
+  "valores": {
+    "bajoagua": {
+      "godRays": 3.2,
+      "caustics": 0.3,
+      "surfaceCaustics": 0.5
+    }
+  }
+}

@@ -131,6 +131,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     caustics: uniform(1),
     causticEps: uniform(0.12), // cuanto menor, líneas más finas y brillantes
     surfaceCaustics: uniform(1),
+    rayClouds: uniform(0.5), // cuánto apaga la sombra de una nube los god rays (1 = físico)
   };
   const L = CASCADE_LENGTHS;
   const halfTexel = 0.5 / FFT_SIZE;
@@ -356,6 +357,16 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     const xzS = p.xz.add(up.xz.mul(D.div(max(up.y, 0.25))));
     return mix(float(1), causticAt(xzS, D, soft), u.caustics).mul(clouds.cloudShadowNode(vec3(xzS.x, u.level, xzS.y)));
   };
+  /**
+   * Haces de luz (god rays) en p: el mismo enfoque de las olas, pero sin depender del control de
+   * cáusticas de los objetos (antes, bajar las cáusticas apagaba también los haces).
+   */
+  const shaftNode = (p) => {
+    const D = max(u.level.sub(p.y), 0.0);
+    const up = u.sunRefr;
+    const xzS = p.xz.add(up.xz.mul(D.div(max(up.y, 0.25))));
+    return causticAt(xzS, D, true).mul(mix(float(1), clouds.cloudShadowNode(vec3(xzS.x, u.level, xzS.y)), u.rayClouds));
+  };
   const underLightNode = (p) => {
     const D = max(u.level.sub(p.y), 0.0);
     const T = exp(vec3(u.absorb).negate().mul(D.div(max(u.sunRefr.y, 0.3))));
@@ -443,6 +454,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     heightAt,
     surfaceHeightNode,
     causticNode,
+    shaftNode,
     underLightNode,
     waterTypes: WATER_TYPES,
     mesh,

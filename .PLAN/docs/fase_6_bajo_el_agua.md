@@ -117,6 +117,22 @@ El océano pasa a `DoubleSide`. En la cara de atrás (`frontFacing` falso):
 - **Parámetros** (carpeta *Bajo el agua*): "God rays" 0-8 (5 por defecto), "Cáusticas (ballena y partículas)" 0-3 (1,5), "Nitidez de las cáusticas" 0-1 (0,75) y "Brillo de la superficie (desde abajo)" 0-3 (1).
 - **Coste:** una muestra de textura por cascada y evaluación. Con la ballena cubriendo la pantalla bajo el agua, el fotograma sube a unos 10 ms a 720p (16 pasos de god rays).
 
+### Ajustes del 29/09/2026 (preset de Roberto)
+
+- **Valores por defecto** del preset que envió: god rays 3,2, cáusticas 0,3 y brillo de la superficie desde abajo 0,5.
+- **Los god rays solo se veían a veces.** Tenía dos causas:
+  1. **Dependían del control de cáusticas:** se calculaban con `causticNode`, que se mezcla con «Cáusticas». Con 0,3 los haces quedaban al 30 %. Ahora usan `ocean.shaftNode`, independiente de ese control.
+  2. **Sombra de las nubes:** cuando una nube tapa el sol sobre esa zona, no hay haces. Las nubes se mueven con el viento, así que los haces aparecían y desaparecían aunque la cámara diera vueltas. Es lo físico, pero ahora el control «Las nubes apagan los haces» (0,5 por defecto; 1 = físico) deja que solo los atenúen.
+
+![](img/fase_6/god_rays_nubes.jpg)
+
+- **Burbujas más pequeñas y dispersas:**
+  - Nube del impacto: 8000 burbujas de 0,6-5 cm en 7 m de radio.
+  - Salida: 2000 burbujas de 0,6-4 cm.
+  - Huella al entrar y estela: 0,5-3,5 cm, más repartidas. Antes medían hasta 18 cm y formaban una nube compacta.
+
+![](img/fase_6/burbujas_impacto.jpg)
+
 ## 6.6 Burbujas
 
 - **Física:** nuevo tipo de partícula (4).
