@@ -104,6 +104,7 @@ export function createGui(m) {
   fBreath.add(p, 'archFront', 0, 25, 1).name('Arco: flexión de la cabeza (°)');
   fBreath.add(p, 'archRear', 0, 35, 1).name('Arco: cola abajo (°)');
   fBreath.add(p, 'breathExposure', -0.3, 1, 0.05).name('Arco: asoma el espiráculo (m)');
+  fBreath.add(p, 'blowLead', 0, 2, 0.05).name('Arco: exhala antes de asomar (s)');
   fBreath.add(p, 'breathSurfaceTime', 1.5, 12, 0.1).name('Superficie: tiempo (s)');
   fBreath.add(p, 'breathRootDepth', 0, 2, 0.05).name('Superficie: hundimiento (m)');
   fBreath.add(p, 'breathDiveAngle', 8, 45, 1).name('Inclinación al bajar (°)');

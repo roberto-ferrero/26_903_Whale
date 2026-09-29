@@ -292,6 +292,7 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
     - arquea el cuerpo (cabeza flexionada, cola abajo) y asoma poco más que la nariz (~0,2-0,3 m de cabeza);
     - sopla y se sumerge en el mismo movimiento, siguiendo la ola local;
     - espiráculo adelantado 0,5 m;
+    - exhala 0,5 s antes de asomar (burbujas bajo el agua) y, al sumergirse, suelta un reguero de burbujas que va disminuyendo; la cola no sale del agua;
     - la versión anterior se conserva como estilo *En superficie*.
   - Detalle: [docs/respiracion.md](docs/respiracion.md).
 

@@ -20,6 +20,7 @@ export const BREATH_DEFAULTS = {
   archFront: 22, // grados: la cabeza se flexiona hacia abajo (el morro no asoma más que el espiráculo)
   archRear: 14, // grados: la parte trasera se arquea hacia abajo (la cola queda hundida)
   breathExposure: 0.2, // m: lo que asoma el espiráculo sobre el agua al soplar
+  blowLead: 0.5, // s: empieza a exhalar antes de asomar (bajo el agua, burbujas): ahorra tiempo en superficie
 };
 
 // geometría aproximada (sistema del cuerpo: hacia delante, hacia arriba; m, medida en la malla):
@@ -227,8 +228,14 @@ function planBreathArc(start, heading, waterLevel, swimSpeed, p) {
   b = build(yA);
 
   const arch = { front: 0, rear: 0 };
-  // el soplido: cuando el espiráculo está más alto (un poco antes, al asomar)
-  const blowTime = Math.max(tBlow - 0.25, 0);
+  // la exhalación empieza `blowLead` s antes de que asome el espiráculo (todavía bajo el agua: salen
+  // burbujas) y sigue fuera (soplido): la ballena aprovecha el poco tiempo que está en superficie
+  let tEmerge = tBlow;
+  for (let t = Math.max(b.tA - 4, 0); t <= tBlow; t += 0.02) {
+    const { pitch } = sampleIn(b, t, tmpP);
+    if (tmpP.y + blowholeUp(pitch, front * b.archAmt(t)) > w) { tEmerge = t; break; }
+  }
+  const blowTime = Math.max(tEmerge - (p.blowLead ?? 0.5), 0);
   // estados que se muestran (y que usa el director de cámara): el soplido cae al final del tramo de
   // subida, así que «respirar» empieza 1,5 s antes de él y dura hasta el final del arco
   const tR = Math.min(Math.max(blowTime - 1.5, 0.1), b.tC - 0.1);

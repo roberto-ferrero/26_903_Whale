@@ -111,6 +111,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Arco: flexión de la cabeza (°) | número | 22 | 0 – 25 | `archFront` |
 | Arco: cola abajo (°) | número | 14 | 0 – 35 | `archRear` |
 | Arco: asoma el espiráculo (m) | número | 0.2 | -0.3 – 1 | `breathExposure` |
+| Arco: exhala antes de asomar (s) | número | 0.5 | 0 – 2 | `blowLead` |
 | Superficie: tiempo (s) | número | 4.5 | 1.5 – 12 | `breathSurfaceTime` |
 | Superficie: hundimiento (m) | número | 0.7 | 0 – 2 | `breathRootDepth` |
 | Inclinación al bajar (°) | número | 25 | 8 – 45 | `breathDiveAngle` |
@@ -460,7 +461,7 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | Módulo | Claves |
 |---|---|
 | `tiempo` | `timeScale`, `stepSize` |
-| `ballena` | `enabled`, `depth`, `swimSpeed`, `wander`, `radius`, `autoJump`, `autoBreath`, `autoInterval`, `blendTime`, `surfaceStroke`, `showPath`, `ascentTime`, `exitSpeed`, `exitAngle`, `roll`, `rollSide`, `landingPitch`, `submergeTime`, `submergeDepth`, `recoverTime`, `breathStyle`, `breathAngle`, `breathSurfaceTime`, `breathRootDepth`, `breathDiveAngle`, `blowHeight`, `blowAmount`, `arcTime`, `arcLead`, `arcExit`, `archFront`, `archRear`, `breathExposure` |
+| `ballena` | `enabled`, `depth`, `swimSpeed`, `wander`, `radius`, `autoJump`, `autoBreath`, `autoInterval`, `blendTime`, `surfaceStroke`, `showPath`, `ascentTime`, `exitSpeed`, `exitAngle`, `roll`, `rollSide`, `landingPitch`, `submergeTime`, `submergeDepth`, `recoverTime`, `breathStyle`, `breathAngle`, `breathSurfaceTime`, `breathRootDepth`, `breathDiveAngle`, `blowHeight`, `blowAmount`, `arcTime`, `arcLead`, `arcExit`, `archFront`, `archRear`, `breathExposure`, `blowLead` |
 | `camara` | `mode`, `rail`, `transition`, `hardCuts`, `followSmoothing`, `railSpeed`, `fov`, `autoRotate`, `rotateSpeed` |
 | `luz` | `toneMapping`, `exposure`, `environment`, `sunIntensity`, `sunColor`, `sunElevation`, `sunAzimuth`, `hemiIntensity`, `background`, `fog`, `fogNear`, `fogFar` |
 | `cielo` | `enabled`, `model`, `ozone`, `multiScattering`, `place`, `lat`, `lon`, `tz`, `date`, `hour`, `animate`, `timeSpeed`, `turbidity`, `rayleigh`, `mieCoefficient`, `mieDirectionalG`, `skyBrightness`, `sunStrength`, `ambientStrength`, `moonStrength`, `stars`, `cloudLight`, `fogDensity` |
