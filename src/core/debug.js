@@ -66,7 +66,9 @@ export function createDebug(container, whale, fsm) {
       seg.textContent = STATE_NAMES[ph.id].split(' ')[0];
       track.appendChild(seg);
     }
-    for (const [name, t] of [['surface_exit', plan.tExit], ['apex', plan.apexTime], ['impact', plan.impactTime]]) {
+    const events = plan.kind === 'breath' ? [['blow', plan.blowTime]]
+      : [['surface_exit', plan.tExit], ['apex', plan.apexTime], ['impact', plan.impactTime]];
+    for (const [name, t] of events) {
       const tick = document.createElement('div');
       tick.className = 'tl-event';
       tick.style.left = `${(t / plan.duration) * 100}%`;
@@ -106,7 +108,7 @@ export function createDebug(container, whale, fsm) {
         const p = fsm.params;
         label.textContent = !p.enabled
           ? 'Máquina de estados desactivada (modo libre)'
-          : `Nadar · ${s.timeInState.toFixed(1)} s${p.autoJump ? ` · siguiente salto en ${Math.max(0, p.autoInterval - s.timeInState).toFixed(1)} s` : ' · salto manual (tecla J)'}`;
+          : `Nadar · ${s.timeInState.toFixed(1)} s${p.autoJump || p.autoBreath ? ` · siguiente acción en ${Math.max(0, p.autoInterval - s.timeInState).toFixed(1)} s` : ' · manual (J salta, B respira)'}`;
       }
     },
   };

@@ -22,15 +22,19 @@ export function createGui(m) {
   const seqActions = {
     toggle: () => { sequence.toggle(); playCtl.name(sq.playing ? '■ Parar (P)' : '▶ Reproducir secuencia (P)'); },
     jump: () => sequence.jumpNow(),
+    breathe: () => sequence.breatheNow(),
   };
   const playCtl = fSeq.add(seqActions, 'toggle').name('▶ Reproducir secuencia (P)');
   fSeq.add(seqActions, 'jump').name('Saltar ahora');
+  fSeq.add(seqActions, 'breathe').name('Respirar ahora');
   fSeq.add(sq, 'phase').name('Fase').listen().disable();
   fSeq.add(sq, 'progress').name('Progreso').listen().disable();
   fSeq.add(sq, 'loop').name('Repetir');
   fSeq.add(sq, 'autoCamera').name('Cámaras automáticas');
   fSeq.add(sq, 'deepTime', 2, 60, 1).name('Nado profundo (s)');
   fSeq.add(sq, 'deepDepth', 6, 40, 1).name('Profundidad (m)');
+  fSeq.add(sq, 'swimTime', 2, 60, 1).name('Nado entre respiraciones (s)');
+  fSeq.add(sq, 'swimDepth', 2, 30, 0.5).name('Profundidad entre respiraciones (m)');
   fSeq.add(sq, 'surfaceTime', 2, 60, 1).name('Ondas y espuma (s)');
   fSeq.add(sq, 'surfaceDepth', 1, 10, 0.5).name('Nado en superficie (m)');
 
@@ -65,8 +69,11 @@ export function createGui(m) {
   const p = fsm.params;
   fWhale.add(p, 'enabled').name('Máquina de estados').onChange((v) => fsm.setEnabled(v));
   fWhale.add({ jump: () => fsm.jump() }, 'jump').name('▲ Saltar ahora (J)');
+  fWhale.add({ breathe: () => fsm.breathe() }, 'breathe').name('● Respirar ahora (B)');
   fWhale.add(p, 'autoJump').name('Salto automático');
-  fWhale.add(p, 'autoInterval', 1, 60, 0.5).name('Nadar antes de saltar (s)');
+  fWhale.add(p, 'autoBreath').name('Respiración automática');
+  fWhale.add(p, 'autoInterval', 1, 60, 0.5).name('Nadar entre acciones (s)');
+  fWhale.add(p, 'blendTime', 0, 3, 0.05).name('Transición entre planes (s)');
   fWhale.add(fsm.state, 'label').name('Estado').listen().disable();
   fWhale.add(fsm.state, 'lastEvent').name('Último evento').listen().disable();
   fWhale.add(fsm.state, 'airTime').name('Tiempo en el aire').listen().disable();
@@ -87,8 +94,17 @@ export function createGui(m) {
   fTraj.add(p, 'submergeTime', 0.8, 6, 0.1).name('Duración inmersión (s)');
   fTraj.add(p, 'submergeDepth', 1, 15, 0.5).name('Profundidad tras impacto (m)');
   fTraj.add(p, 'recoverTime', 1, 15, 0.5).name('Duración recuperación (s)');
+  const fBreath = fWhale.addFolder('Respiración (próxima)');
+  fBreath.add(p, 'breathAngle', 10, 60, 1).name('Inclinación al subir (°)');
+  fBreath.add(p, 'breathSurfaceTime', 1.5, 12, 0.1).name('Tiempo en superficie (s)');
+  fBreath.add(p, 'breathRootDepth', 0, 2, 0.05).name('Hundimiento al respirar (m)');
+  fBreath.add(p, 'breathDiveAngle', 8, 45, 1).name('Inclinación al bajar (°)');
+  fBreath.add(p, 'blowHeight', 1, 9, 0.1).name('Altura del soplido (m)');
+  fBreath.add(p, 'blowAmount', 0, 3, 0.05).name('Cantidad de soplido');
+  fBreath.add(p, 'surfaceStroke', 0.1, 1, 0.05).name('Aleteo junto a la superficie');
   fSwim.close();
   fTraj.close();
+  fBreath.close();
 
   // ------------------------------------------------------------------ animación (modo libre)
   const fAnim = gui.addFolder('Animación (modo libre)');

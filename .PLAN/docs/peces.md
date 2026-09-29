@@ -15,6 +15,10 @@
 - **Peces sueltos:** desactivados (el código se conserva, fuera de la GUI y de los presets).
 - **Selector WebGPU / WebGL2:** retirado de la GUI. El fallback automático sin WebGPU (y `?webgl` en la URL) se mantiene.
 
+## Valores por defecto (29/09/2026, de Roberto)
+
+500 peces de 0,14 m a 0,8 m/s, profundidad mínima 4 m, a 15 m de la cámara; separación 3,05, alineación 3,35 y cohesión 3,4.
+
 ## Visibilidad (29/09/2026, petición de Roberto: «apenas veo el cardumen»)
 
 ![](img/peces/cardumen_seguimiento.jpg)

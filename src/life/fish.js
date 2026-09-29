@@ -18,14 +18,14 @@ import {
 export const FISH_DEFAULTS = {
   enabled: true,
   schoolCount: 500,
-  schoolSize: 0.22, // m (longitud de cada pez)
-  schoolSpeed: 1.4, // m/s de crucero
-  separation: 1.5,
-  alignment: 1,
-  cohesion: 1,
+  schoolSize: 0.14, // m (longitud de cada pez)
+  schoolSpeed: 0.8, // m/s de crucero
+  separation: 3.05,
+  alignment: 3.35,
+  cohesion: 3.4,
   flee: 1,
   schoolDepth: 4, // m: profundidad mínima del centro del cardumen
-  schoolDistance: 10, // m: distancia delante de la cámara
+  schoolDistance: 15, // m: distancia delante de la cámara
   loners: 0, // peces sueltos: desactivados de momento (29/09/2026)
   lonerSize: 0.7,
 };

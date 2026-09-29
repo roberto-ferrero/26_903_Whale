@@ -1,21 +1,33 @@
 import * as THREE from 'three/webgpu';
 import { BREACH_DEFAULTS, G, bodyQuaternion, planBreach } from './breachPlanner.js';
+import { BREATH_DEFAULTS, planBreath, strokeAt } from './breathPlanner.js';
 
 export const STATE_NAMES = {
   nadar: 'Nadar', preparar: 'Preparar (ascenso)', saltar: 'Saltar (en el aire)', caer: 'Caer (impacto)', recuperar: 'Recuperar',
+  subir: 'Subir a respirar', respirar: 'Respirar (soplido)', bajar: 'Sumergirse',
 };
-export const STATE_COLORS = { nadar: '#4fc3f7', preparar: '#81c784', saltar: '#ffee58', caer: '#ef5350', recuperar: '#ba68c8' };
+export const STATE_COLORS = {
+  nadar: '#4fc3f7', preparar: '#81c784', saltar: '#ffee58', caer: '#ef5350', recuperar: '#ba68c8',
+  subir: '#80deea', respirar: '#ffffff', bajar: '#4db6ac',
+};
+/** Acciones del modo automático, en orden: nada → respira → nada → salta → nada → respira → nada → respira. */
+export const AUTO_CYCLE = ['respirar', 'saltar', 'respirar', 'respirar'];
+const smoothstep01 = (x) => x * x * (3 - 2 * x);
 
 /**
- * Máquina de estados de la ballena (Fase 2.4): nadar → preparar → saltar → caer → recuperar → nadar.
+ * Máquina de estados de la ballena (Fase 2.4): nadar → preparar → saltar → caer → recuperar → nadar,
+ * y la respiración (29/09/2026): nadar → subir → respirar → bajar → nadar.
  *
  * - **nadar**: nada a la profundidad indicada con un rumbo que deriva suavemente y vuelve hacia
  *   el centro si se aleja (radio). Salta cuando se pide (`jump()`) o, en modo automático, tras
- *   el intervalo indicado.
+ *   el intervalo indicado. En automático alterna respirar y saltar (`AUTO_CYCLE`).
  * - **preparar / saltar / caer / recuperar**: siguen un plan de salto calculado desde la posición y
  *   el rumbo actuales (`breachPlanner.js`); el plan es determinista y se puede recorrer (`seek`).
+ * - **subir / respirar / bajar**: plan de respiración (`breathPlanner.js`).
+ * - **Transiciones sin saltos:** al empezar o acabar un plan, la diferencia de posición y de
+ *   orientación con la pose anterior (p. ej. la inclinación al girar nadando) se reparte en 1 s.
  * Mueve el hueso Root (centro de masas) y elige los clips: swim_idle / swim_fast / breach_body.
- * Eventos (`on`): cambios de estado (`state`) y `surface_exit`, `apex`, `impact`.
+ * Eventos (`on`): cambios de estado (`state`) y `surface_exit`, `apex`, `impact`, `blow`.
  */
 export function createWhaleStates(scene, whale, anim, waterState) {
   const root = whale.rootBone;
@@ -33,9 +45,13 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     wander: 0.12, // amplitud del cambio de rumbo al nadar (rad/s)
     radius: 45, // si se aleja más del centro, vuelve hacia él (m)
     autoJump: true,
-    autoInterval: 6, // s nadando antes del siguiente salto automático
+    autoBreath: true, // en automático también sube a respirar (ciclo AUTO_CYCLE)
+    autoInterval: 6, // s nadando antes de la siguiente acción automática
+    blendTime: 1, // s para absorber la diferencia de pose en cada cambio de plan
+    surfaceStroke: 0.25, // amplitud del aleteo junto a la superficie (1 = la del clip)
     showPath: true,
     ...BREACH_DEFAULTS,
+    ...BREATH_DEFAULTS,
   };
   const state = {
     current: 'nadar',
@@ -51,9 +67,11 @@ export function createWhaleStates(scene, whale, anim, waterState) {
   const pos = new THREE.Vector3(0, waterState.waterLevel - params.depth, -25);
   let heading = 0;
   let yawRate = 0;
+  let vy = 0; // velocidad vertical al nadar (cambios de profundidad con cabeceo)
   let swimTime = 0;
   let plan = null;
-  const flags = { body: false, recover: false, apex: false, impact: false };
+  let cycle = 0; // posición en AUTO_CYCLE
+  const flags = { body: false, recover: false, apex: false, impact: false, blow: false };
   let lastHeadY = null;
   const listeners = [];
 
@@ -71,11 +89,17 @@ export function createWhaleStates(scene, whale, anim, waterState) {
   Object.values(markers).forEach((m) => scene.add(m));
 
   function updatePathVisibility() {
-    const show = params.enabled && params.showPath && Boolean(plan);
+    const show = params.enabled && params.showPath && Boolean(plan) && plan.kind !== 'breath';
     path.visible = show;
     Object.values(markers).forEach((m) => { m.visible = show; });
   }
   function drawPlan() {
+    if (plan.kind === 'breath') {
+      pathGeo.setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+      path.visible = false;
+      Object.values(markers).forEach((m) => { m.visible = false; });
+      return;
+    }
     const pts = [];
     for (let t = 0; t <= plan.duration; t += 0.05) {
       const v = new THREE.Vector3();
@@ -106,6 +130,31 @@ export function createWhaleStates(scene, whale, anim, waterState) {
   function resetRoot() {
     root.position.copy(restLocal.pos);
     root.quaternion.copy(restLocal.quat);
+    hasLast = false;
+  }
+
+  // transiciones: la pose aplicada en el fotograma anterior y el desfase que se va absorbiendo
+  const lastP = new THREE.Vector3(), lastQ = new THREE.Quaternion();
+  let hasLast = false, blendPending = false;
+  const blend = { t: 1, dp: new THREE.Vector3(), dq: new THREE.Quaternion() };
+  const bP = new THREE.Vector3(), bQ = new THREE.Quaternion(), qI = new THREE.Quaternion(), qInv = new THREE.Quaternion();
+  /** Coloca la ballena (centro de masas y orientación en el mundo) absorbiendo los saltos de pose. */
+  function place(p, q, dt) {
+    if (blendPending && hasLast) {
+      blend.dp.subVectors(lastP, p);
+      blend.dq.copy(lastQ).multiply(qInv.copy(q).invert());
+      blend.t = 0;
+    }
+    blendPending = false;
+    if (blend.t < 1) {
+      blend.t = Math.min(1, blend.t + dt / Math.max(params.blendTime, 1e-3));
+      const s = 1 - smoothstep01(blend.t);
+      bP.copy(p).addScaledVector(blend.dp, s);
+      bQ.slerpQuaternions(qI, blend.dq, s).multiply(q);
+      p = bP; q = bQ;
+    }
+    lastP.copy(p); lastQ.copy(q); hasLast = true;
+    applyToRoot(p, q);
   }
 
   function emit(name, detail) {
@@ -119,6 +168,8 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     state.timeInState = 0;
     emit('state', id);
   }
+  /** Empieza (o termina) un plan: el próximo `place` reparte la diferencia de pose. */
+  function beginTransition() { blendPending = params.blendTime > 0; }
 
   // ------------------------------------------------------------------ nadar
   function swim(dt) {
@@ -132,11 +183,39 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     heading += yawRate * dt;
     pos.x += Math.sin(heading) * params.swimSpeed * dt;
     pos.z += Math.cos(heading) * params.swimSpeed * dt;
-    // vuelve a la profundidad de nado con suavidad (p. ej. tras cambiarla en el panel)
+    // vuelve a la profundidad de nado con suavidad (p. ej. tras cambiarla en el panel o en la
+    // secuencia): velocidad vertical limitada y suavizada, y el cuerpo cabecea hacia donde va
     const targetY = waterState.waterLevel - params.depth;
-    pos.y += (targetY - pos.y) * Math.min(1, dt * 0.5);
-    applyToRoot(pos, bodyQuaternion(heading, 0, -yawRate * 1.5, Q)); // se inclina al girar
-    if (params.autoJump && state.timeInState >= params.autoInterval) jump();
+    const vMax = params.swimSpeed * 0.45;
+    const vyTarget = THREE.MathUtils.clamp((targetY - pos.y) * 0.4, -vMax, vMax);
+    vy += (vyTarget - vy) * Math.min(1, dt * 0.8);
+    pos.y += vy * dt;
+    const pitch = Math.atan2(vy, Math.max(params.swimSpeed, 0.1));
+    place(pos, bodyQuaternion(heading, pitch, -yawRate * 1.5, Q), dt); // se inclina al girar
+    if (state.timeInState >= params.autoInterval) autoAction();
+  }
+
+  /** Siguiente acción automática del ciclo (respirar / saltar) según lo que esté activado. */
+  function autoAction() {
+    if (!params.autoJump && !params.autoBreath) return;
+    for (let k = 0; k < AUTO_CYCLE.length; k++) {
+      const a = AUTO_CYCLE[cycle % AUTO_CYCLE.length];
+      cycle++;
+      if (a === 'saltar' && params.autoJump) { jump(); return; }
+      if (a === 'respirar' && params.autoBreath) { breathe(); return; }
+    }
+  }
+
+  // ------------------------------------------------------------------ respiración
+  function breathe() {
+    if (!params.enabled || state.current !== 'nadar' || plan) return;
+    plan = planBreath(pos.clone(), heading, waterState.waterLevel, params.swimSpeed, params);
+    state.planTime = 0;
+    state.planDuration = plan.duration;
+    flags.blow = false;
+    drawPlan();
+    beginTransition();
+    setState('subir');
   }
 
   // ------------------------------------------------------------------ salto
@@ -150,6 +229,7 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     flags.body = flags.recover = flags.apex = flags.impact = false;
     lastHeadY = null;
     drawPlan();
+    beginTransition();
     setState('preparar');
     anim.play('swim_fast', 1.0);
   }
@@ -160,8 +240,13 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     state.planTime += dt;
     const t = state.planTime;
     const ph = plan.sample(Math.min(t, plan.duration), P, Q);
-    applyToRoot(P, Q);
+    place(P, Q, dt);
     if (ph.id !== state.current && t < plan.duration) setState(ph.id);
+    if (plan.kind === 'breath') {
+      if (!flags.blow && t >= plan.blowTime) { flags.blow = true; emit('blow'); }
+      if (t >= plan.duration) endPlan();
+      return;
+    }
 
     if (!flags.body && t >= plan.bodyStart) {
       flags.body = true;
@@ -179,15 +264,33 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     if (!flags.apex && t >= plan.apexTime) { flags.apex = true; emit('apex'); }
     if (!flags.impact && t >= plan.impactTime) { flags.impact = true; emit('impact'); }
 
-    if (t >= plan.duration) {
-      // de vuelta a nadar desde el final del plan, con el mismo rumbo
-      pos.copy(plan.R);
-      heading = plan.heading;
-      yawRate = 0;
-      plan = null;
-      updatePathVisibility();
-      setState('nadar');
+    if (t >= plan.duration) endPlan();
+  }
+  function endPlan() {
+    // de vuelta a nadar desde el final del plan, con el mismo rumbo
+    pos.copy(plan.R);
+    heading = plan.heading;
+    yawRate = 0;
+    vy = 0;
+    plan = null;
+    updatePathVisibility();
+    beginTransition();
+    setState('nadar');
+  }
+
+  // amplitud del aleteo: el clip de nado mueve la punta de la cola ±3 m; junto a la superficie la
+  // aleta saldría del agua en cada brazada. Con peso < 1 el mezclador combina el clip con la pose de
+  // reposo (brazada más corta). En el salto, peso completo. Cambia suavemente (sin saltos).
+  const SWIM_CLIPS = ['swim_idle', 'swim_fast', 'Swim1', 'Swim2', 'Idle'].filter((n) => whale.actions[n]);
+  let stroke = 1;
+  function strokeWeight(dt) {
+    let target = 1;
+    if (!['preparar', 'saltar', 'caer'].includes(state.current)) {
+      const depth = waterState.waterLevel - (hasLast ? lastP.y : pos.y);
+      target = strokeAt(depth, params.surfaceStroke);
     }
+    stroke += (target - stroke) * Math.min(1, dt * 1.5);
+    for (const n of SWIM_CLIPS) whale.actions[n].weight = stroke;
   }
 
   function setEnabled(on) {
@@ -195,10 +298,13 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     if (!on) {
       plan = null;
       resetRoot();
+      stroke = 1; // modo libre: clips con su amplitud original
+      for (const n of SWIM_CLIPS) whale.actions[n].weight = 1;
       setState('nadar');
     } else {
       pos.set(0, waterState.waterLevel - params.depth, -25);
       heading = 0;
+      hasLast = false;
       anim.play('swim_idle', anim.state.fade, { restart: true });
     }
     updatePathVisibility();
@@ -213,6 +319,9 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     get phases() { return plan?.phases ?? []; },
     on(fn) { listeners.push(fn); },
     jump,
+    breathe,
+    /** Reinicia el ciclo automático (respirar / saltar) desde el principio. */
+    resetCycle() { cycle = 0; },
     setEnabled,
     apply() {
       setEnabled(params.enabled);
@@ -222,6 +331,16 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     /** Recorre el plan de salto actual hasta el instante t (s desde el inicio del ascenso). */
     seek(t) {
       if (!plan) return;
+      hasLast = false; blend.t = 1;
+      if (plan.kind === 'breath') {
+        state.planTime = THREE.MathUtils.clamp(t, 0, plan.duration - 1e-3);
+        flags.blow = state.planTime >= plan.blowTime;
+        const ph = plan.sample(state.planTime, P, Q);
+        applyToRoot(P, Q);
+        setState(ph.id);
+        whale.mixer.update(0);
+        return;
+      }
       const target = THREE.MathUtils.clamp(t, 0, plan.duration - 1e-3);
       state.planTime = target;
       flags.apex = target >= plan.apexTime;
@@ -238,6 +357,7 @@ export function createWhaleStates(scene, whale, anim, waterState) {
       whale.mixer.update(0);
     },
     update(dt) {
+      if (params.enabled) strokeWeight(dt);
       anim.update(dt);
       if (!params.enabled) return;
       state.timeInState += dt;

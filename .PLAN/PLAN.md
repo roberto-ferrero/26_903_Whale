@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.28 · 29/09/2026
+Versión 0.29 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -281,7 +281,13 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
   - Visibilidad: el cardumen va delante de la cámara (10 m), arrastrado por una corriente, para que se vea con la cámara de seguimiento.
   - Corregidas las estelas del TAA (los peces no escribían su velocidad real).
   - Funciona también en WebGL2.
+  - Valores por defecto de Roberto: 500 peces de 0,14 m a 0,8 m/s, a 15 m de la cámara; separación 3,05, alineación 3,35 y cohesión 3,4.
   - Detalle: [docs/peces.md](docs/peces.md).
+- [x] **Respiración, secuencia nueva y transiciones sin saltos** (29/09/2026): `src/whale/breathPlanner.js`.
+  - Estados subir → respirar → bajar: sube en S, asoma el lomo y **sopla** (vapor, gotas y spray desde el espiráculo, con sonido) y se sumerge. La cola no sale del agua: brazada más corta junto a la superficie y cabeceo limitado.
+  - Secuencia: nada → respira → nada → salta → nada → respira → nada → respira, con el plano nuevo *Soplido (cerca)*. En automático, el mismo ciclo. Tecla **B**.
+  - Saltos corregidos: la orientación cambiaba de golpe al empezar el salto (la inclinación del giro al nadar). Ahora cada cambio de plan reparte la diferencia de pose en 1 s: 0 picos de giro en 150 s (antes, de 700 a 7400 m/s² en un fotograma).
+  - Detalle: [docs/respiracion.md](docs/respiracion.md).
 
 ---
 

@@ -86,6 +86,48 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
   const pulses = []; // impulsos de ondas que duran varios fotogramas: [x, z, radio, vy, espuma, s restantes]
   fsm.on((name) => { if (state.enabled && (name === 'surface_exit' || name === 'impact' || name === 'apex')) pending.push(name); });
 
+  // ------------------------------------------------------------------ soplido al respirar (29/09/2026)
+  // espiráculo en el espacio del hueso Head: sobre la cabeza, 2,8 m por detrás de la punta del
+  // hocico (medido en la malla: el punto más alto de la línea media a esa altura)
+  const headBone = bones.get('Head');
+  const BLOWHOLE = new THREE.Vector3(0, 0.7, -0.98);
+  const BLOW_TIME = 1.4; // s que dura la exhalación
+  const blowAcc = { acc: { vapor: 0, drop: 0, spray: 0 } };
+  const blowPos = new THREE.Vector3();
+  let blowT = -1;
+  fsm.on((name) => { if (name === 'blow' && state.enabled && headBone) blowT = 0; });
+  /** Posición del espiráculo en el mundo (para el soplido, el audio y las pruebas). */
+  const blowhole = (out) => (headBone ? headBone.localToWorld(out.copy(BLOWHOLE)) : out.set(0, 0, 0));
+
+  function blow(dt) {
+    blowT += dt;
+    if (blowT > BLOW_TIME) { blowT = -1; return; }
+    // ataque muy rápido y caída más lenta
+    const k = blowT < 0.12 ? blowT / 0.12 : Math.pow(1 - (blowT - 0.12) / (BLOW_TIME - 0.12), 1.4);
+    blowhole(blowPos);
+    const wl = ocean.heightAt(blowPos.x, blowPos.z);
+    blowPos.y = Math.max(blowPos.y, wl + 0.05);
+    const P = fsm.params;
+    const h = P.blowHeight, amt = P.blowAmount;
+    const v0 = Math.sqrt(2 * 9.81 * h); // velocidad para que las gotas lleguen a esa altura
+    const head = probes.find((p) => p.role === 'head');
+    const hx = head ? head.vel.x * 0.5 : 0, hz = head ? head.vel.z * 0.5 : 0;
+    // vapor: penacho denso que sube, se frena, se abre y se lo lleva el viento
+    emit(blowAcc, 'vapor', 700 * k * amt * dt, {
+      pos: blowPos.clone(), vel: new THREE.Vector3(hx, h * 1.35 * (0.5 + 0.5 * k), hz), radius: 0.25, spread: 1.5,
+      type: T.vapor, size: [0.45, 1.1], life: 5, up: 0.7,
+    });
+    // gotas (balísticas: marcan la altura del soplido y caen) y spray fino
+    emit(blowAcc, 'drop', 450 * k * amt * dt, {
+      pos: blowPos.clone(), vel: new THREE.Vector3(hx, v0 * 0.8, hz), radius: 0.2, spread: v0 * 0.35,
+      type: T.drop, size: [0.012, 0.035], life: 3, up: 0.75,
+    });
+    emit(blowAcc, 'spray', 1600 * k * amt * dt, {
+      pos: blowPos.clone(), vel: new THREE.Vector3(hx, v0 * 1.05, hz), radius: 0.25, spread: v0 * 0.3,
+      type: T.spray, size: [0.03, 0.09], life: 2.2, up: 0.7,
+    });
+  }
+
   function burst(name) {
     const d = state.density;
     // el centro del cuerpo en la superficie
@@ -214,6 +256,7 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     if (wetCount > 0) lastWet = time;
     // 5.7: eventos del salto
     while (pending.length) burst(pending.shift());
+    if (blowT >= 0 && active && dt > 0) blow(dt);
     for (let i = pulses.length - 1; i >= 0; i--) {
       const q = pulses[i];
       if (active && dt > 0) ripples.addSource(q[0], q[1], q[2], q[3], q[4]);
@@ -235,5 +278,5 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     for (const m of probeMeshes) m.visible = state.showProbes;
   }
 
-  return { state, apply, update, probes, splash, ripples };
+  return { state, apply, update, probes, splash, ripples, blowhole };
 }

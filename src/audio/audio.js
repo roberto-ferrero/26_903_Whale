@@ -3,6 +3,7 @@
  * - Oleaje: ruido filtrado con "respiración" lenta de las olas y siseo de crestas; más fuerte con
  *   mar más alto (Hs del océano).
  * - Impacto del salto: golpe grave + estallido de ruido que se cierra; salida: chapoteo.
+ * - Respiración: soplido (ruido que se abre y se apaga en ~1,5 s) y, poco después, la inspiración.
  *   Se retrasan con la distancia: 343 m/s en el aire, 1500 m/s bajo el agua.
  * - Bajo el agua: todo pasa por un paso bajo (sonido apagado) y aparece un rumor grave; de vez en
  *   cuando, un canto de ballena (glissandos con vibrato y eco).
@@ -160,14 +161,19 @@ export function createAudio({ camera, fsm, ocean, under }) {
 
   // eventos del salto
   fsm.on((name) => {
-    if (!state.enabled || !ctx || (name !== 'impact' && name !== 'surface_exit')) return;
+    if (!state.enabled || !ctx || (name !== 'impact' && name !== 'surface_exit' && name !== 'blow')) return;
     const p = new camera.position.constructor();
     fsm.getPose(p); // escribe la posición (devuelve el rumbo)
     const d = p.distanceTo(camera.position);
     const speed = under.underwater ? 1500 : 343;
     const att = 1 / (1 + d / 25);
     if (name === 'impact') burst({ when: d / speed, gain: 0.9 * att * state.effects, from: 5000, to: 200, dur: 1.8, thump: 1.2 });
-    else burst({ when: d / speed, gain: 0.35 * att * state.effects, from: 3000, to: 600, dur: 0.9 });
+    else if (name === 'blow') {
+      // soplido: fuerte y áspero; la inspiración, más corta y suave (bajo el agua casi no se oye)
+      const g = (under.underwater ? 0.25 : 1) * att * state.effects;
+      burst({ when: d / speed, gain: 0.6 * g, from: 2600, to: 450, dur: 1.6, thump: 0.15 });
+      burst({ when: d / speed + 1.9, gain: 0.25 * g, from: 700, to: 1600, dur: 1.1 });
+    } else burst({ when: d / speed, gain: 0.35 * att * state.effects, from: 3000, to: 600, dur: 0.9 });
   });
 
   let t = 0;

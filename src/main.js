@@ -86,7 +86,7 @@ for (const m of Object.values(whale.materials)) m.outputNode = output.mul(vec4(o
 const anchor = createAnchor(viewer.scene, whale, helpers.state);
 const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, () => fsm.state.current,
   (x, z) => (ocean.state.enabled ? ocean.heightAt(x, z) : helpers.state.waterLevel));
-const sequence = createSequence({ fsm, cameras, helpers, anchor }); // Fase 7.1
+const sequence = createSequence({ fsm, cameras, helpers, anchor, skeleton }); // Fase 7.1
 const audio = createAudio({ camera: viewer.camera, fsm, ocean, under }); // Fase 7.4
 const recorder = createRecorder({ canvas: viewer.renderer.domElement }); // Fase 8.4
 const fish = createFish({ scene: viewer.scene, ocean, water, camera: viewer.camera }); // cardumen y peces sueltos
@@ -114,7 +114,7 @@ params.add('calidad', quality.state, quality.apply, ['profile']);
 params.add('peces', fish.state, fish.apply, Object.keys(fish.state).filter((k) => !['info', 'loners', 'lonerSize'].includes(k)));
 params.add('post', post.state, post.apply);
 params.add('audio', audio.state, audio.apply, ['volume', 'ocean', 'effects', 'song']); // sin 'enabled': el navegador exige un clic
-params.add('secuencia', sequence.state, () => {}, ['loop', 'deepTime', 'deepDepth', 'surfaceTime', 'surfaceDepth', 'autoCamera']);
+params.add('secuencia', sequence.state, () => {}, ['loop', 'deepTime', 'deepDepth', 'swimTime', 'swimDepth', 'surfaceTime', 'surfaceDepth', 'autoCamera']);
 params.add('modelo', look.state, look.apply);
 params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
@@ -141,6 +141,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { clock.togglePause(); e.preventDefault(); }
   else if (e.key === '.') clock.step();
   else if (e.key.toLowerCase() === 'j') fsm.jump();
+  else if (e.key.toLowerCase() === 'b') fsm.breathe();
   else if (e.key.toLowerCase() === 'p') sequence.toggle();
   else if (e.key.toLowerCase() === 'c') {
     cameras.state.mode = CAMERA_MODES[(CAMERA_MODES.indexOf(cameras.state.mode) + 1) % CAMERA_MODES.length];

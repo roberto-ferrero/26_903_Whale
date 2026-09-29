@@ -1,10 +1,11 @@
 import * as THREE from 'three/webgpu';
 
 export const CAMERA_MODES = ['Órbita libre', 'Seguimiento', 'Cinemática'];
-export const RAILS = ['Director (cortes)', 'Barco', 'Aérea', 'Ras de agua', 'Bajo el agua', 'Hacia la luz (desde abajo)', 'Cruce de superficie'];
+export const RAILS = ['Director (cortes)', 'Barco', 'Aérea', 'Ras de agua', 'Bajo el agua', 'Hacia la luz (desde abajo)', 'Cruce de superficie', 'Soplido (cerca)'];
 // plano que usa el director en cada estado de la ballena (Fase 7.2); la secuencia puede sustituirlo
 const DIRECTOR = {
   nadar: 'Aérea', preparar: 'Hacia la luz (desde abajo)', saltar: 'Barco', caer: 'Ras de agua', recuperar: 'Cruce de superficie',
+  subir: 'Hacia la luz (desde abajo)', respirar: 'Soplido (cerca)', bajar: 'Cruce de superficie',
 };
 
 const VIEWS = {
@@ -93,6 +94,11 @@ export function createCameras(viewer, getWhalePose, waterState, getWhaleState, g
         out.copy(A).addScaledVector(r, 14).addScaledVector(f, 3)
           .setY(w + 1.4 - 4.6 * smoothstep(Math.min(Math.max((tShot - 1) / 5, 0), 1)));
         look.copy(A).setY(Math.max(A.y, w - 3));
+        break;
+      case 'Soplido (cerca)': // respiración: de lado y algo por delante, a 2 m del agua; encuadra lomo y soplido
+        out.copy(A).addScaledVector(r, 17).addScaledVector(f, 6 + 0.6 * tShot);
+        out.y = Math.max(w + 1.2, (getWaterHeight ? getWaterHeight(out.x, out.z) : w) + 2);
+        look.copy(A).addScaledVector(f, 2).setY(w + 1.6);
         break;
       default:
         out.copy(A).add(new THREE.Vector3(16, 5, 12));

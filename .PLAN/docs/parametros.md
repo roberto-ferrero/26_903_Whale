@@ -4,7 +4,6 @@ Generado desde la GUI el 2026-09-29 (`npm run dev` → `window.whaleViewer.gui`)
 
 Todos los parámetros ajustables (menos los de lectura y los botones) se guardan en los **presets** (JSON) y en la **URL** como `#modulo.clave=valor` (ver la tabla de claves al final).
 
-
 ## Calidad
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
@@ -19,14 +18,26 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 |---|---|---|---|---|
 | ▶ Reproducir secuencia (P) | botón |  |  | `toggle` |
 | Saltar ahora | botón |  |  | `jump` |
+| Respirar ahora | botón |  |  | `breathe` |
 | Fase *(lectura)* | texto | — |  | `phase` |
 | Progreso *(lectura)* | texto |  |  | `progress` |
 | Repetir | sí/no | sí |  | `loop` |
 | Cámaras automáticas | sí/no | sí |  | `autoCamera` |
 | Nado profundo (s) | número | 8 | 2 – 60 | `deepTime` |
-| Profundidad (m) | número | 16 | 6 – 40 | `deepDepth` |
+| Profundidad (m) | número | 14 | 6 – 40 | `deepDepth` |
+| Nado entre respiraciones (s) | número | 6 | 2 – 60 | `swimTime` |
+| Profundidad entre respiraciones (m) | número | 6 | 2 – 30 | `swimDepth` |
 | Ondas y espuma (s) | número | 7 | 2 – 60 | `surfaceTime` |
 | Nado en superficie (m) | número | 3 | 1 – 10 | `surfaceDepth` |
+
+## Grabar vídeo
+
+| Control | Tipo | Por defecto | Rango / opciones | Clave |
+|---|---|---|---|---|
+| ● Grabar (WebM) | botón |  |  | `toggle` |
+| Estado *(lectura)* | texto | listo |  | `status` |
+| Fotogramas/s | lista | 60 | 30 / 60 | `fps` |
+| Calidad (Mbit/s) | número | 40 | 5 – 120 | `bitrate` |
 
 ## Audio
 
@@ -45,7 +56,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Pausa (espacio) | sí/no | no |  | `paused` |
 | Velocidad (cámara lenta < 1) | número | 1 | 0 – 3 | `timeScale` |
 | Avanzar un fotograma (.) | botón |  |  | `step` |
-| Paso (s) | número | 0.0333 | 0.008 – 0.2 | `stepSize` |
+| Paso (s) | número | 0.0333 | 0.0083 – 0.2 | `stepSize` |
 | Tiempo simulado (s) *(lectura)* | número | 0 |  | `time` |
 
 ## Ballena · comportamiento
@@ -54,8 +65,11 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 |---|---|---|---|---|
 | Máquina de estados | sí/no | sí |  | `enabled` |
 | ▲ Saltar ahora (J) | botón |  |  | `jump` |
+| ● Respirar ahora (B) | botón |  |  | `breathe` |
 | Salto automático | sí/no | sí |  | `autoJump` |
-| Nadar antes de saltar (s) | número | 6 | 1 – 60 | `autoInterval` |
+| Respiración automática | sí/no | sí |  | `autoBreath` |
+| Nadar entre acciones (s) | número | 6 | 1 – 60 | `autoInterval` |
+| Transición entre planes (s) | número | 1 | 0 – 3 | `blendTime` |
 | Estado *(lectura)* | texto | Nadar |  | `label` |
 | Último evento *(lectura)* | texto | — |  | `lastEvent` |
 | Tiempo en el aire *(lectura)* | texto |  |  | `airTime` |
@@ -85,6 +99,18 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Profundidad tras impacto (m) | número | 6 | 1 – 15 | `submergeDepth` |
 | Duración recuperación (s) | número | 5 | 1 – 15 | `recoverTime` |
 
+## Ballena · comportamiento › Respiración (próxima)
+
+| Control | Tipo | Por defecto | Rango / opciones | Clave |
+|---|---|---|---|---|
+| Inclinación al subir (°) | número | 28 | 10 – 60 | `breathAngle` |
+| Tiempo en superficie (s) | número | 4.5 | 1.5 – 12 | `breathSurfaceTime` |
+| Hundimiento al respirar (m) | número | 0.7 | 0 – 2 | `breathRootDepth` |
+| Inclinación al bajar (°) | número | 25 | 8 – 45 | `breathDiveAngle` |
+| Altura del soplido (m) | número | 4 | 1 – 9 | `blowHeight` |
+| Cantidad de soplido | número | 1 | 0 – 3 | `blowAmount` |
+| Aleteo junto a la superficie | número | 0.25 | 0.1 – 1 | `surfaceStroke` |
+
 ## Animación (modo libre)
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
@@ -92,7 +118,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Clip | lista | swim_idle | breach_body / Idle / JumpLeft / JumpRight / JumpStraight / MouthOpen / Swim1 / Swim2 / swim_fast / swim_idle | `clip` |
 | Bucle | sí/no | sí |  | `loop` |
 | Fundido (s) | número | 0.6 | 0 – 2 | `fade` |
-| Tiempo del clip (s) | número | 0 | 0 – 3.733 | `time` |
+| Tiempo del clip (s) | número | 0 | 0 – 3.7333 | `time` |
 | Pose de reposo | botón |  |  | `rest` |
 
 ## Cámara
@@ -100,7 +126,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
 | Modo (C) | lista | Seguimiento | Órbita libre / Seguimiento / Cinemática | `mode` |
-| Plano cinemático | lista | Director (cortes) | Director (cortes) / Barco / Aérea / Ras de agua / Bajo el agua / Hacia la luz (desde abajo) / Cruce de superficie | `rail` |
+| Plano cinemático | lista | Director (cortes) | Director (cortes) / Barco / Aérea / Ras de agua / Bajo el agua / Hacia la luz (desde abajo) / Cruce de superficie / Soplido (cerca) | `rail` |
 | Plano actual *(lectura)* | texto |  |  | `shot` |
 | Transición (s) | número | 1.5 | 0 – 5 | `transition` |
 | Director: cortes secos | sí/no | no |  | `hardCuts` |
@@ -294,6 +320,22 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Viñeta | número | 0.15 | 0 – 1 | `vignette` |
 | Grano | número | 0.04 | 0 – 0.4 | `grain` |
 
+## Peces
+
+| Control | Tipo | Por defecto | Rango / opciones | Clave |
+|---|---|---|---|---|
+| Peces | sí/no | sí |  | `enabled` |
+| Estado *(lectura)* | texto |  |  | `info` |
+| Peces en el cardumen | número | 500 | 0 – 1200 | `schoolCount` |
+| Tamaño (m) | número | 0.14 | 0.08 – 0.5 | `schoolSize` |
+| Velocidad (m/s) | número | 0.8 | 0.3 – 4 | `schoolSpeed` |
+| Profundidad mínima (m) | número | 4 | 2 – 25 | `schoolDepth` |
+| Distancia a la cámara (m) | número | 15 | 4 – 30 | `schoolDistance` |
+| Separación | número | 3.05 | 0 – 4 | `separation` |
+| Alineación | número | 3.35 | 0 – 4 | `alignment` |
+| Cohesión | número | 3.4 | 0 – 4 | `cohesion` |
+| Huida de la ballena | número | 1 | 0 – 4 | `flee` |
+
 ## Bajo el agua
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
@@ -362,7 +404,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
-| Hueso | lista | Root | Root / MasterBone / Spine.003 / Spine.004 / Spine.005 / Head / UpperJaw / LowerJaw / Tongue / Tongue.002 / Tongue.001 / Tongue.003 / Tongue.004 / Tongue.005 … | `selected` |
+| Hueso | lista | Root | Root / MasterBone / Spine.003 / Spine.004 / Spine.005 / Head / UpperJaw / LowerJaw / Tongue / Tongue.002 / Tongue.001 / Tongue.003 / Tong… | `selected` |
 | Resaltar | sí/no | sí |  | `showSelected` |
 | Grupo *(lectura)* | texto |  |  | `group` |
 | Padre *(lectura)* | texto |  |  | `parent` |
@@ -396,7 +438,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
-| Preset | lista | Escena gris (placeholder) | Escena gris (placeholder) / Mediodía despejado / Atardecer / Atardecer tormentoso / Salto a cámara lenta / Inspección del modelo / Noche de luna / Día aceler… | `preset` |
+| Preset | lista | Escena gris (placeholder) | Escena gris (placeholder) / Mediodía despejado / Atardecer / Atardecer tormentoso / Salto a cámara lenta / Inspección del modelo / Noche … | `preset` |
 | Descripción *(lectura)* | texto | Escena placeholder de la Fase 2: sin cielo físico, nubes … |  | `descripcion` |
 | Aplicar preset | botón |  |  | `aplicar` |
 | Guardar cambios en la URL | sí/no | sí |  | `autoURL` |
@@ -411,7 +453,7 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | Módulo | Claves |
 |---|---|
 | `tiempo` | `timeScale`, `stepSize` |
-| `ballena` | `enabled`, `depth`, `swimSpeed`, `wander`, `radius`, `autoJump`, `autoInterval`, `showPath`, `ascentTime`, `exitSpeed`, `exitAngle`, `roll`, `rollSide`, `landingPitch`, `submergeTime`, `submergeDepth`, `recoverTime` |
+| `ballena` | `enabled`, `depth`, `swimSpeed`, `wander`, `radius`, `autoJump`, `autoBreath`, `autoInterval`, `blendTime`, `surfaceStroke`, `showPath`, `ascentTime`, `exitSpeed`, `exitAngle`, `roll`, `rollSide`, `landingPitch`, `submergeTime`, `submergeDepth`, `recoverTime`, `breathAngle`, `breathSurfaceTime`, `breathRootDepth`, `breathDiveAngle`, `blowHeight`, `blowAmount` |
 | `camara` | `mode`, `rail`, `transition`, `hardCuts`, `followSmoothing`, `railSpeed`, `fov`, `autoRotate`, `rotateSpeed` |
 | `luz` | `toneMapping`, `exposure`, `environment`, `sunIntensity`, `sunColor`, `sunElevation`, `sunAzimuth`, `hemiIntensity`, `background`, `fog`, `fogNear`, `fogFar` |
 | `cielo` | `enabled`, `model`, `ozone`, `multiScattering`, `place`, `lat`, `lon`, `tz`, `date`, `hour`, `animate`, `timeSpeed`, `turbidity`, `rayleigh`, `mieCoefficient`, `mieDirectionalG`, `skyBrightness`, `sunStrength`, `ambientStrength`, `moonStrength`, `stars`, `cloudLight`, `fogDensity` |
@@ -420,9 +462,10 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | `agua` | `enabled`, `splashes`, `density`, `sizeScale`, `brightness`, `waves`, `rippleSpeed`, `foamLife`, `wake`, `curtains`, `bubbles`, `dynamicWet`, `showProbes` |
 | `bajoagua` | `enabled`, `godRays`, `steps`, `scattering`, `caustics`, `causticSharpness`, `surfaceCaustics`, `rayClouds`, `distortion`, `chroma`, `blur`, `vignette`, `lensDrops`, `snow` |
 | `calidad` | `profile` |
+| `peces` | `enabled`, `schoolCount`, `schoolSize`, `schoolSpeed`, `separation`, `alignment`, `cohesion`, `flee`, `schoolDepth`, `schoolDistance` |
 | `post` | `enabled`, `aa`, `bloom`, `bloomStrength`, `bloomRadius`, `bloomThreshold`, `dof`, `autoFocus`, `focusDistance`, `focalRange`, `bokeh`, `motionBlur`, `motionBlurAmount`, `exposure`, `contrast`, `saturation`, `temperature`, `vignette`, `grain` |
 | `audio` | `volume`, `ocean`, `effects`, `song` |
-| `secuencia` | `loop`, `deepTime`, `deepDepth`, `surfaceTime`, `surfaceDepth`, `autoCamera` |
+| `secuencia` | `loop`, `deepTime`, `deepDepth`, `swimTime`, `swimDepth`, `surfaceTime`, `surfaceDepth`, `autoCamera` |
 | `modelo` | `wetness`, `wetDarken`, `normalMap`, `normalScale`, `aoIntensity`, `wireframe`, `barbs` |
 | `lod` | `mode`, `dist1`, `dist2` |
 | `ayudas` | `grid`, `gridHeight`, `axes`, `box`, `water`, `waterLevel`, `waterOpacity`, `waterColor`, `sunHelper`, `human` |

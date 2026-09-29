@@ -4,7 +4,7 @@ import {
   length, max, mix, mrt, normalize, pow, select, sin, smoothstep, sqrt, uint, uniform, uniformArray, uv, vec2, vec3, vec4,
 } from 'three/tsl';
 
-export const SPLASH_TYPES = { drop: 0, spray: 1, mist: 2, sheet: 3, bubble: 4 };
+export const SPLASH_TYPES = { drop: 0, spray: 1, mist: 2, sheet: 3, bubble: 4, vapor: 5 };
 const MAX_EMITTERS = 64;
 
 /**
@@ -18,6 +18,7 @@ const MAX_EMITTERS = 64;
  *   2 bruma  · sprites grandes y tenues, casi sin gravedad, crecen y se los lleva el viento
  *   3 lámina · agua que cae del cuerpo (cortinas): sprites estirados según la velocidad
  *   4 burbuja · bajo el agua: sube a su velocidad terminal (según el tamaño), oscila y estalla al llegar arriba
+ *   5 vapor  · soplido de la ballena: como la bruma, pero más denso y crece deprisa (se abre en penacho)
  * Iluminación: ambiente del cielo + sol con fase Henyey-Greenstein (el agua brilla a contraluz).
  */
 export function createSplash(renderer, scene, { count = 131072, surfaceHeight, lightNode = null, velocityNode = null }) {
@@ -74,18 +75,21 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
     // integración
     If(v.w.greaterThan(0).and(p.w.lessThan(v.w)), () => {
       const type = a.x;
-      const isMist = type.greaterThan(1.5).and(type.lessThan(2.5));
-      const isBubble = type.greaterThan(3.5);
+      const isVapor = type.greaterThan(4.5);
+      const isMist = type.greaterThan(1.5).and(type.lessThan(2.5)).or(isVapor);
+      const isBubble = type.greaterThan(3.5).and(type.lessThan(4.5));
       const drag = select(type.lessThan(0.5), float(0.08), select(type.lessThan(1.5), float(0.9), select(isMist, float(1.2), select(isBubble, float(3), float(0.25)))));
       // la bruma flota y sube despacio; la burbuja sube a ~0,3-1 m/s según su tamaño (empuje/rozamiento)
       const grav = select(isMist, float(0.15), select(isBubble, a.y.mul(3).add(0.3).mul(3), float(-9.81)));
       const vel = v.xyz.add(vec3(0, grav, 0).mul(u.dt)).toVar();
-      // rozamiento hacia el viento (la bruma se va con él)
-      vel.assign(u.wind.add(vel.sub(u.wind).mul(exp(drag.negate().mul(u.dt)))));
+      // rozamiento hacia el viento (la bruma se va con él; el vapor del soplido, más despacio:
+      // si no, con viento fresco desaparecía del plano en menos de 1 s)
+      const wind = select(isVapor, u.wind.mul(0.3), u.wind);
+      vel.assign(wind.add(vel.sub(wind).mul(exp(drag.negate().mul(u.dt)))));
       const pos = p.xyz.add(vel.mul(u.dt));
       p.assign(vec4(pos, p.w.add(u.dt)));
       v.assign(vec4(vel, v.w));
-      If(isMist, () => { a.y.assign(a.y.mul(float(1).add(u.dt.mul(0.12)))); });
+      If(isMist, () => { a.y.assign(a.y.mul(float(1).add(u.dt.mul(select(isVapor, float(0.3), float(0.12)))))); });
       // al volver al agua desaparece (salvo la bruma)
       If(isMist.not().and(isBubble.not()).and(vel.y.lessThan(0)).and(pos.y.lessThan(surfaceHeight(pos.xz))), () => { v.w.assign(0); });
       // la burbuja se bambolea y estalla al llegar a la superficie
@@ -103,9 +107,10 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
   const alive = vA.w.greaterThan(0).and(pA.w.lessThan(vA.w));
   const t01 = pA.w.div(max(vA.w, 1e-3));
   const type = aA.x;
-  const isMist = type.greaterThan(1.5).and(type.lessThan(2.5));
+  const isVapor = type.greaterThan(4.5);
+  const isMist = type.greaterThan(1.5).and(type.lessThan(2.5)).or(isVapor);
   const isSheet = type.greaterThan(2.5).and(type.lessThan(3.5));
-  const isBubble = type.greaterThan(3.5);
+  const isBubble = type.greaterThan(3.5).and(type.lessThan(4.5));
   material.positionNode = pA.xyz;
   // estela de movimiento: se estira en la dirección de la velocidad en pantalla
   const vv = cameraViewMatrix.mul(vec4(vA.xyz, 0)).xyz;
@@ -129,7 +134,7 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
   const ring = smoothstep(0.55, 0.9, d).mul(smoothstep(1.0, 0.9, d)).add(smoothstep(0.35, 0.0, length(uv().sub(vec2(0.35, 0.65)))).mul(0.8));
   const soft = exp(d.mul(d).mul(-3.5)).mul(smoothstep(1.0, 0.7, d));
   const fadeIn = smoothstep(0.0, 0.08, t01), fadeOut = smoothstep(1.0, 0.7, t01);
-  const alphaType = select(type.lessThan(0.5), float(0.8), select(type.lessThan(1.5), float(0.3), select(isMist, float(0.035), select(isBubble, float(0.7), float(0.4)))));
+  const alphaType = select(type.lessThan(0.5), float(0.8), select(type.lessThan(1.5), float(0.3), select(isVapor, float(0.22), select(isMist, float(0.035), select(isBubble, float(0.7), float(0.4))))));
   material.opacityNode = select(isMist, soft, select(isBubble, ring, round)).mul(alphaType).mul(fadeIn.mul(fadeOut)).mul(u.opacity)
     .mul(clamp(dist.div(2), 0, 1)); // no tapar la cámara
   // la posición sale del búfer: velocidad solo por el movimiento de la cámara (TAA sin estelas)
