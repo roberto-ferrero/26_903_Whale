@@ -11,7 +11,7 @@ export const BUFFER_VIEWS = ['Final', 'Albedo', 'Normales', 'Profundidad', 'Oclu
  * - Línea de tiempo de la máquina de estados: fases del salto, eventos y cursor; clic = saltar a ese instante.
  */
 export function createDebug(container, whale, fsm) {
-  const state = { view: 'Final', depthRange: 60, timeline: true };
+  const state = { view: 'Final', depthRange: 60, timeline: false };
   const depthRange = uniform(state.depthRange);
   const originals = new Map(whale.meshes.map((m) => [m, m.material]));
   const cache = new Map();

@@ -19,11 +19,11 @@ export function createAnchor(scene, whale, waterState) {
 
   const state = {
     bone: 'Root',
-    marker: true,
+    marker: false,
     size: 0.25,
     trail: false,
     trailLength: 600,
-    dropLine: true,
+    dropLine: false,
     // lecturas
     position: '',
     heightOverWater: '',

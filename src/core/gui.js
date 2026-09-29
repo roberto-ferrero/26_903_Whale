@@ -7,7 +7,7 @@ import { BREATH_STYLES } from '../whale/breathPlanner.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets, toggleHelpers } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -70,7 +70,7 @@ export function createGui(m) {
   const p = fsm.params;
   fWhale.add(p, 'enabled').name('Máquina de estados').onChange((v) => fsm.setEnabled(v));
   fWhale.add({ jump: () => fsm.jump() }, 'jump').name('▲ Saltar ahora (J)');
-  fWhale.add({ breathe: () => fsm.breathe() }, 'breathe').name('● Respirar ahora (B)');
+  fWhale.add({ breathe: () => fsm.breathe() }, 'breathe').name('● Respirar ahora (R)');
   fWhale.add(p, 'autoJump').name('Salto automático');
   fWhale.add(p, 'autoBreath').name('Respiración automática');
   fWhale.add(p, 'autoInterval', 1, 60, 0.5).name('Nadar entre acciones (s)');
@@ -269,6 +269,7 @@ export function createGui(m) {
   fWater.add(wa, 'brightness', 0.2, 3, 0.05).name('Brillo de las gotas');
   fWater.add(wa, 'curtains', 0, 3, 0.05).name('Cortinas (agua del cuerpo)');
   fWater.add(wa, 'bubbles', 0, 3, 0.05).name('Burbujas');
+  fWater.add(wa, 'breathFoam', 0, 3, 0.05).name('Espuma al respirar');
   fWater.add(wa, 'waves', 0, 3, 0.05).name('Fuerza de las ondas');
   fWater.add(wa, 'rippleSpeed', 1, 10, 0.1).name('Velocidad de las ondas (m/s)');
   fWater.add(wa, 'wake', 0, 3, 0.05).name('Estela');
@@ -363,7 +364,7 @@ export function createGui(m) {
   fHelp.add(h, 'axes').name('Ejes (3 m)').onChange(helpers.apply);
   fHelp.add(h, 'box').name('Caja envolvente').onChange(helpers.apply);
   fHelp.add(h, 'sunHelper').name('Dirección del sol').onChange(helpers.apply);
-  fHelp.add(h, 'human').name('Persona 1,8 m (en el agua)').onChange(helpers.apply);
+  fHelp.add({ toggle: () => toggleHelpers() }, 'toggle').name('Ayudas de depuración (B)');
 
   // ------------------------------------------------------------------ esqueleto
   const fSkel = gui.addFolder('Esqueleto');
@@ -401,8 +402,7 @@ export function createGui(m) {
   fDebug.add(debug.state, 'view', debug.views).name('Vista de buffer').onChange(debug.apply);
   fDebug.add(debug.state, 'depthRange', 5, 300, 1).name('Rango profundidad (m)').onChange(debug.apply);
   fDebug.add(debug.state, 'timeline').name('Línea de tiempo').onChange(debug.apply);
-  const statsState = { visible: true };
-  fDebug.add(statsState, 'visible').name('Estadísticas').onChange((v) => { stats.el.style.display = v ? '' : 'none'; });
+  fDebug.add(stats.state, 'visible').name('Estadísticas').listen().onChange(() => stats.apply());
 
   // ------------------------------------------------------------------ presets y URL (2.2)
   const fPresets = gui.addFolder('Presets y URL');
@@ -447,5 +447,6 @@ export function createGui(m) {
   params.onChange(() => { gui.controllersRecursive().forEach((ctrl) => ctrl.updateDisplay()); updateTimeRange(); });
 
   for (const f of [fAnim, fModel, fAtm, fClouds, fLight, fHelp, fSkel, fAnchor, fDebug]) f.close();
+  gui.close(); // por defecto, replegado (29/09/2026)
   return gui;
 }

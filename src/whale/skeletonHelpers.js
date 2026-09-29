@@ -33,7 +33,7 @@ export function createSkeletonHelpers(scene, whale) {
     axesSize: 0.3,
     labels: 'Ninguna',
     selected: 'Root',
-    showSelected: true,
+    showSelected: false,
     bodyOpacity: 1,
     // lecturas del hueso seleccionado
     info: { group: '', worldPos: '', localRot: '', parent: '' },

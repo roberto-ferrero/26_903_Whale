@@ -31,6 +31,7 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     wake: 1,
     curtains: 1,
     bubbles: 1, // Fase 6.6
+    breathFoam: 1, // espuma al romper la superficie al respirar (29/09/2026)
     dynamicWet: true,
     showProbes: false,
     info: '',
@@ -148,12 +149,20 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
       spoutT = 0;
       stats.spouts++;
       if (under) stats.forcedSpouts++;
+      // rotura de la superficie: el agua que cubría el espiráculo salta en un anillo de gotas y
+      // spray, y deja una mancha de espuma (impulso de ondas con espuma)
+      const at = new THREE.Vector3(blowPos.x, wl + 0.05, blowPos.z);
+      splash.emit({ pos: at, vel: new THREE.Vector3(0, 0.5, 0), radius: 0.6, spread: 3.5, type: T.drop, size: [0.03, 0.09], life: 2, up: 0.6, ring: true }, 700 * state.density * amt);
+      splash.emit({ pos: at.clone(), vel: new THREE.Vector3(0, 0.3, 0), radius: 0.8, spread: 2.5, type: T.spray, size: [0.06, 0.18], life: 1.6, up: 0.5, ring: true }, 900 * state.density * amt);
+      pulses.push([blowPos.x, blowPos.z, 1.8, 1.2 * state.waves, 4 * state.breathFoam, 0.25]);
     }
     spoutT += dt;
     if (spoutT > SPOUT_TIME) { blowT = -1; spoutT = -1; trailT = 0; return; }
     // surtidor: ataque muy rápido y caída más lenta; sale del espiráculo o, si está tapado por el
     // agua, de la superficie justo encima
     const k = spoutT < 0.12 ? spoutT / 0.12 : Math.pow(1 - (spoutT - 0.12) / (SPOUT_TIME - 0.12), 1.4);
+    // espuma alrededor de la cabeza mientras sopla (el agua batida por la exhalación y la cabeza)
+    ripples.addSource(blowPos.x, blowPos.z, 1.6, 0.15 * state.waves, (0.4 + 1.2 * k) * state.breathFoam);
     blowPos.y = Math.max(blowPos.y, wl + 0.05);
     const v0 = Math.sqrt(2 * 9.81 * h); // velocidad para que las gotas lleguen a esa altura
     const head = probes.find((p) => p.role === 'head');

@@ -3,8 +3,8 @@ import { positionWorld, uniform } from 'three/tsl';
 
 /**
  * Ayudas visuales y escena placeholder (Fase 2): plano de agua (hasta el océano de la Fase 4),
- * rejilla como fondo marino, ejes, caja de la malla visible, luz del sol y una persona de 1,8 m
- * de pie sobre el agua como referencia de escala.
+ * rejilla como fondo marino, ejes, caja de la malla visible y luz del sol. (La persona de 1,8 m de
+ * referencia se quitó el 29/09/2026 a petición de Roberto.)
  */
 export function createHelpers(scene, sun, whale, lodState) {
   const state = {
@@ -17,7 +17,6 @@ export function createHelpers(scene, sun, whale, lodState) {
     waterOpacity: 0.9,
     waterColor: '#1c4a66',
     sunHelper: false,
-    human: true,
   };
 
   const grid = new THREE.GridHelper(200, 200, 0x6b8299, 0x4a5a68);
@@ -40,14 +39,6 @@ export function createHelpers(scene, sun, whale, lodState) {
   const sunHelper = new THREE.DirectionalLightHelper(sun, 3);
   scene.add(sunHelper);
 
-  // referencia de escala: persona de 1,8 m de pie sobre el agua
-  const human = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.22, 1.36, 4, 12),
-    new THREE.MeshStandardNodeMaterial({ color: 0xe07a3f, roughness: 0.6 }),
-  );
-  human.position.set(8, 0.9 + state.waterLevel, 4);
-  scene.add(human);
-
   const tmpBox = new THREE.Box3();
 
   function apply() {
@@ -60,8 +51,6 @@ export function createHelpers(scene, sun, whale, lodState) {
     waterMat.opacity = state.waterOpacity;
     waterMat.color.set(state.waterColor);
     sunHelper.visible = state.sunHelper;
-    human.visible = state.human;
-    human.position.y = 0.9 + state.waterLevel;
   }
   apply();
 

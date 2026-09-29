@@ -121,7 +121,23 @@ params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
 params.add('debug', debug.state, debug.apply);
 const presets = loadBuiltinPresets();
-gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
+
+// ayudas de depuración (tecla B): por defecto no se ve ninguna; B activa o quita a la vez el
+// marcador y la línea del ancla, el hueso seleccionado, la trayectoria del salto, la dirección del
+// sol, la línea de tiempo y las estadísticas
+let helpersOn = false;
+function toggleHelpers(on = !helpersOn) {
+  helpersOn = on;
+  anchor.state.marker = on; anchor.state.dropLine = on; anchor.apply();
+  skeleton.state.showSelected = on; skeleton.apply();
+  fsm.params.showPath = on; fsm.apply();
+  helpers.state.sunHelper = on; helpers.apply();
+  debug.state.timeline = on; debug.apply();
+  stats.state.visible = on; stats.apply();
+  gui?.controllersRecursive().forEach((c) => c.updateDisplay());
+}
+
+gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets, toggleHelpers });
 applySky();
 if (!viewer.compute) {
   // Fase 8.5: WebGL2 (sin WebGPU): perfil bajo y aviso de lo que no está disponible
@@ -142,7 +158,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { clock.togglePause(); e.preventDefault(); }
   else if (e.key === '.') clock.step();
   else if (e.key.toLowerCase() === 'j') fsm.jump();
-  else if (e.key.toLowerCase() === 'b') fsm.breathe();
+  else if (e.key.toLowerCase() === 'r') fsm.breathe();
+  else if (e.key.toLowerCase() === 'b') toggleHelpers();
   else if (e.key.toLowerCase() === 'p') sequence.toggle();
   else if (e.key.toLowerCase() === 'c') {
     cameras.state.mode = CAMERA_MODES[(CAMERA_MODES.indexOf(cameras.state.mode) + 1) % CAMERA_MODES.length];

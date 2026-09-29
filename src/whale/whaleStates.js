@@ -49,7 +49,7 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     autoInterval: 6, // s nadando antes de la siguiente acción automática
     blendTime: 1, // s para absorber la diferencia de pose en cada cambio de plan
     surfaceStroke: 0.25, // amplitud del aleteo junto a la superficie (1 = la del clip)
-    showPath: true,
+    showPath: false,
     ...BREACH_DEFAULTS,
     ...BREATH_DEFAULTS,
   };
@@ -87,7 +87,8 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     apex: new THREE.Mesh(markerGeo, new THREE.MeshBasicNodeMaterial({ color: 0xffee58 })),
     impact: new THREE.Mesh(markerGeo, new THREE.MeshBasicNodeMaterial({ color: 0xef5350 })),
   };
-  Object.values(markers).forEach((m) => scene.add(m));
+  Object.values(markers).forEach((m) => { m.visible = false; scene.add(m); });
+  path.visible = false; // sin plan todavía (y ayudas ocultas por defecto)
 
   function updatePathVisibility() {
     const show = params.enabled && params.showPath && Boolean(plan) && plan.kind !== 'breath';
@@ -330,8 +331,10 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     for (const n of SWIM_CLIPS) whale.actions[n].weight = stroke;
   }
 
+  let enabledNow = params.enabled;
   function setEnabled(on) {
     params.enabled = on;
+    enabledNow = on;
     if (!on) {
       plan = null;
       resetRoot();
@@ -363,7 +366,9 @@ export function createWhaleStates(scene, whale, anim, waterState) {
     resetCycle() { cycle = 0; },
     setEnabled,
     apply() {
-      setEnabled(params.enabled);
+      // solo al cambiar el interruptor: si no, cualquier cambio de parámetro (o empezar la secuencia,
+      // o las ayudas) devolvía la ballena a su punto de partida de golpe
+      if (params.enabled !== enabledNow) setEnabled(params.enabled);
       if (plan) drawPlan();
       updatePathVisibility();
     },

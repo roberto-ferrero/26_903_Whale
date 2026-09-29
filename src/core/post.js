@@ -24,7 +24,7 @@ export function createPost({ renderer, scene, camera, under, getFocusTarget, con
     bloomStrength: 0.12,
     bloomRadius: 0.25,
     bloomThreshold: 1.4,
-    dof: false,
+    dof: true, // por defecto (perfil Alto) desde el 29/09/2026
     autoFocus: true,
     focusDistance: 30, // m (si no es automático)
     focalRange: 25, // m hasta desenfoque total

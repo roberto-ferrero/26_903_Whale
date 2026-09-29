@@ -78,13 +78,13 @@ export function createSequence({ fsm, cameras, helpers, anchor, skeleton }) {
       saved = {
         depth: fsm.params.depth, autoJump: fsm.params.autoJump, autoBreath: fsm.params.autoBreath, enabled: fsm.params.enabled,
         mode: cameras.state.mode, rail: cameras.state.rail, hardCuts: cameras.state.hardCuts,
-        showPath: fsm.params.showPath, human: helpers?.state.human, axes: helpers?.state.axes,
+        showPath: fsm.params.showPath, axes: helpers?.state.axes,
         marker: anchor?.state.marker, dropLine: anchor?.state.dropLine, bone: skeleton?.state.showSelected,
       };
       // en los planos cinematográficos no se ven las ayudas de depuración
       fsm.params.showPath = false;
       fsm.apply?.();
-      if (helpers) { helpers.state.human = false; helpers.state.axes = false; helpers.apply(); }
+      if (helpers) { helpers.state.axes = false; helpers.apply(); }
       if (anchor) { anchor.state.marker = false; anchor.state.dropLine = false; anchor.apply(); }
       if (skeleton) { skeleton.state.showSelected = false; skeleton.apply(); }
     }
@@ -123,7 +123,7 @@ export function createSequence({ fsm, cameras, helpers, anchor, skeleton }) {
       fsm.params.autoBreath = saved.autoBreath;
       fsm.params.showPath = saved.showPath;
       fsm.apply?.();
-      if (helpers) { helpers.state.human = saved.human; helpers.state.axes = saved.axes; helpers.apply(); }
+      if (helpers) { helpers.state.axes = saved.axes; helpers.apply(); }
       if (anchor) { anchor.state.marker = saved.marker; anchor.state.dropLine = saved.dropLine; anchor.apply(); }
       if (skeleton) { skeleton.state.showSelected = saved.bone; skeleton.apply(); }
       cameras.state.hardCuts = saved.hardCuts;

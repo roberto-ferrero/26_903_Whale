@@ -32,14 +32,14 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
   const state = {
     enabled: true,
     mode: 'FFT',
-    waterType: 'Océano abierto',
+    waterType: 'Tropical clara', // por defecto desde el 29/09/2026
     level: -0.3,
     ...SPECTRUM_DEFAULTS,
     choppiness: 1.1,
     ...GERSTNER_DEFAULTS,
     // aspecto (4.4)
-    scatterColor: '#06303c',
-    clarity: 14, // m: distancia a la que el agua deja pasar ~1/e del verde
+    scatterColor: '#0a4a5a',
+    clarity: 28, // m: distancia a la que el agua deja pasar ~1/e del verde
     sss: 1,
     roughness: 0.04,
     reflections: 1,

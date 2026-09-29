@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.30 · 29/09/2026
+Versión 0.31 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -285,7 +285,7 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
   - Detalle: [docs/peces.md](docs/peces.md).
 - [x] **Respiración, secuencia nueva y transiciones sin saltos** (29/09/2026): `src/whale/breathPlanner.js`.
   - Estados subir → respirar → bajar: sube en S, asoma el lomo y **sopla** (vapor, gotas y spray desde el espiráculo, con sonido) y se sumerge. La cola no sale del agua: brazada más corta junto a la superficie y cabeceo limitado.
-  - Secuencia: nada → respira → nada → salta → nada → respira → nada → respira, con el plano nuevo *Soplido (cerca)*. En automático, el mismo ciclo. Tecla **B**.
+  - Secuencia: nada → respira → nada → salta → nada → respira → nada → respira, con el plano nuevo *Soplido (cerca)*. En automático, el mismo ciclo. Tecla **R**.
   - Saltos corregidos: la orientación cambiaba de golpe al empezar el salto (la inclinación del giro al nadar). Ahora cada cambio de plan reparte la diferencia de pose en 1 s: 0 picos de giro en 150 s (antes, de 700 a 7400 m/s² en un fotograma).
   - **Respiración en arco (continua)**, el estilo por defecto:
     - no se para: avanza y gira a la vez;
@@ -294,8 +294,16 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
     - espiráculo adelantado 0,5 m;
     - exhala 0,5 s antes de asomar (burbujas bajo el agua) y, al sumergirse, suelta un reguero de burbujas que va disminuyendo; la cola no sale del agua;
     - el surtidor sale siempre, aunque una ola tape el espiráculo: sale desde la superficie y no se corta;
+    - espuma y un anillo de gotas al romper la superficie, y espuma alrededor de la cabeza mientras sopla;
     - la versión anterior se conserva como estilo *En superficie*.
   - Detalle: [docs/respiracion.md](docs/respiracion.md).
+- [x] **Valores por defecto y ayudas** (29/09/2026, petición de Roberto):
+  - Panel replegado y ninguna ayuda en pantalla por defecto (ni ejes, ni marcadores, ni trayectoria, ni línea de tiempo, ni estadísticas).
+  - La tecla **B** las muestra u oculta todas a la vez: ancla con su línea al agua, hueso seleccionado, trayectoria del salto, dirección del sol, línea de tiempo y estadísticas. Respirar pasa a la tecla **R**.
+  - Persona de referencia (1,8 m) eliminada por completo.
+  - Agua *Tropical clara* por defecto.
+  - Profundidad de campo y motion blur activados en los perfiles Alto (por defecto) y Ultra.
+  - Corregido: cualquier cambio de un parámetro de la ballena (o empezar la secuencia) la devolvía de golpe a su punto de partida.
 
 ---
 

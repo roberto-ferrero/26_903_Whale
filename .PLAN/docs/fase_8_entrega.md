@@ -18,7 +18,7 @@
 |---|---|---|---|---|---|
 | Bajo | 0,6 | 0,35 · 24 · 2 | 6 (sin desenfoque) | FXAA, sin bloom, motion blur ni grano | ×0,5 |
 | Medio | 0,8 | 0,5 · 32 · 3 | 10 | TAA, bloom, sin motion blur | ×0,8 |
-| Alto (por defecto) | 1 | 0,5 · 40 · 4 | 16 | TAA, bloom, motion blur, grano | ×1 |
+| Alto (por defecto) | 1 | 0,5 · 40 · 4 | 16 | TAA, bloom, motion blur, profundidad de campo (desde el 29/09/2026), grano | ×1 |
 | Ultra | 1,25 | 0,75 · 64 · 6 | 20 | Como Alto | ×1,3 |
 
 - **Automático:** empieza en Alto. Con la media del tiempo de fotograma, baja un nivel si pasa de 19 ms y sube si baja de 11 ms (sin pasar de Alto). Espera 3-5 s entre cambios para no oscilar.

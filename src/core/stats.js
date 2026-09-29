@@ -7,8 +7,15 @@ export function createStats(container, backend) {
   let last = performance.now();
   let fps = 0;
 
+  // oculto por defecto (29/09/2026): se muestra con las ayudas (tecla B) o en Depuración
+  const state = { visible: false };
+  const apply = () => { el.style.display = state.visible ? '' : 'none'; };
+  apply();
+
   return {
     el,
+    state,
+    apply,
     update(renderer, extra) {
       frames++;
       const now = performance.now();

@@ -56,6 +56,15 @@ Petición de Roberto:
 
 ![Surtidor con el espiráculo tapado por el agua](img/respiracion/surtidor_forzado.jpg)
 
+- **Espuma al romper la superficie** (29/09/2026, petición de Roberto):
+  - **Al empezar el surtidor:** un anillo de gotas y spray (el agua que cubría el espiráculo) y un impulso de ondas con espuma de 1,8 m de radio.
+  - **Mientras sopla:** espuma alrededor de la cabeza, más al principio y menos después.
+  - **Control:** *Ballena ↔ agua › Espuma al respirar* (0-3).
+
+| Rompe la superficie y sopla | La espuma queda al sumergirse |
+|---|---|
+| ![](img/respiracion/espuma_1.jpg) | ![](img/respiracion/espuma_2.jpg) |
+
 | Exhala todavía bajo el agua | Reguero de burbujas al sumergirse |
 |---|---|
 | ![](img/respiracion/burbujas_1_exhala.jpg) | ![](img/respiracion/burbujas_3_rastro.jpg) |
@@ -125,7 +134,7 @@ Nuevos estados de la máquina: **subir → respirar → bajar**. Como en el salt
   - **Parámetros:** *Altura del soplido* (4 m; jorobada: 3-5 m) y *Cantidad*.
 - **Audio:** soplido áspero de ~1,6 s y, a los 1,9 s, una inspiración más suave. Bajo el agua suena atenuado.
 - **Controles:**
-  - Tecla **B** o «● Respirar ahora».
+  - Tecla **R** o «● Respirar ahora» (hasta el 29/09 era la B; ahora la B muestra u oculta las ayudas).
   - Carpeta *Ballena · comportamiento › Respiración (próxima)*: inclinaciones, tiempo en superficie, hundimiento, soplido y aleteo junto a la superficie.
 
 ## Modo automático y secuencia

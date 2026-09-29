@@ -65,7 +65,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 |---|---|---|---|---|
 | Máquina de estados | sí/no | sí |  | `enabled` |
 | ▲ Saltar ahora (J) | botón |  |  | `jump` |
-| ● Respirar ahora (B) | botón |  |  | `breathe` |
+| ● Respirar ahora (R) | botón |  |  | `breathe` |
 | Salto automático | sí/no | sí |  | `autoJump` |
 | Respiración automática | sí/no | sí |  | `autoBreath` |
 | Nadar entre acciones (s) | número | 6 | 1 – 60 | `autoInterval` |
@@ -74,7 +74,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Último evento *(lectura)* | texto | — |  | `lastEvent` |
 | Tiempo en el aire *(lectura)* | texto |  |  | `airTime` |
 | Altura máxima *(lectura)* | texto |  |  | `apexHeight` |
-| Ver trayectoria del salto | sí/no | sí |  | `showPath` |
+| Ver trayectoria del salto | sí/no | no |  | `showPath` |
 
 ## Ballena · comportamiento › Nado
 
@@ -273,9 +273,9 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
-| Tipo de agua | lista | Océano abierto | Océano abierto / Tropical clara / Costera verde | `waterType` |
-| Color del agua (dispersión) | color | #06303c |  | `scatterColor` |
-| Claridad (m) | número | 14 | 1 – 60 | `clarity` |
+| Tipo de agua | lista | Tropical clara | Océano abierto / Tropical clara / Costera verde | `waterType` |
+| Color del agua (dispersión) | color | #0a4a5a |  | `scatterColor` |
+| Claridad (m) | número | 28 | 1 – 60 | `clarity` |
 | Luz a través de las crestas | número | 1 | 0 – 4 | `sss` |
 | Rugosidad | número | 0.04 | 0.01 – 0.4 | `roughness` |
 | Reflejo del cielo | número | 1 | 0 – 2 | `reflections` |
@@ -297,6 +297,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Brillo de las gotas | número | 1 | 0.2 – 3 | `brightness` |
 | Cortinas (agua del cuerpo) | número | 1 | 0 – 3 | `curtains` |
 | Burbujas | número | 1 | 0 – 3 | `bubbles` |
+| Espuma al respirar | número | 1 | 0 – 3 | `breathFoam` |
 | Fuerza de las ondas | número | 1 | 0 – 3 | `waves` |
 | Velocidad de las ondas (m/s) | número | 4.5 | 1 – 10 | `rippleSpeed` |
 | Estela | número | 1 | 0 – 3 | `wake` |
@@ -314,7 +315,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Bloom: intensidad | número | 0.12 | 0 – 2 | `bloomStrength` |
 | Bloom: umbral | número | 1.4 | 0 – 4 | `bloomThreshold` |
 | Bloom: radio | número | 0.25 | 0 – 1 | `bloomRadius` |
-| Profundidad de campo | sí/no | no |  | `dof` |
+| Profundidad de campo | sí/no | sí |  | `dof` |
 | Enfoque en la ballena | sí/no | sí |  | `autoFocus` |
 | Distancia de enfoque (m) | número | 30 | 1 – 200 | `focusDistance` |
 | Zona enfocada (m) | número | 25 | 1 – 150 | `focalRange` |
@@ -394,7 +395,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Ejes (3 m) | sí/no | no |  | `axes` |
 | Caja envolvente | sí/no | no |  | `box` |
 | Dirección del sol | sí/no | no |  | `sunHelper` |
-| Persona 1,8 m (en el agua) | sí/no | sí |  | `human` |
+| Ayudas de depuración (B) | botón |  |  | `toggle` |
 
 ## Esqueleto
 
@@ -413,7 +414,7 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
 | Hueso | lista | Root | Root / MasterBone / Spine.003 / Spine.004 / Spine.005 / Head / UpperJaw / LowerJaw / Tongue / Tongue.002 / Tongue.001 / Tongue.003 / Tong… | `selected` |
-| Resaltar | sí/no | sí |  | `showSelected` |
+| Resaltar | sí/no | no |  | `showSelected` |
 | Grupo *(lectura)* | texto |  |  | `group` |
 | Padre *(lectura)* | texto |  |  | `parent` |
 | Posición (mundo) *(lectura)* | texto |  |  | `worldPos` |
@@ -424,12 +425,12 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 | Control | Tipo | Por defecto | Rango / opciones | Clave |
 |---|---|---|---|---|
 | Hueso de anclaje | lista | Root | Root / MasterBone / Head / Spine.007 | `bone` |
-| Marcador y ejes | sí/no | sí |  | `marker` |
+| Marcador y ejes | sí/no | no |  | `marker` |
 | Tamaño del marcador | número | 0.25 | 0.05 – 1 | `size` |
 | Estela | sí/no | no |  | `trail` |
 | Longitud estela (puntos) | número | 600 | 50 – 2000 | `trailLength` |
 | Borrar estela | botón |  |  | `clear` |
-| Línea al agua | sí/no | sí |  | `dropLine` |
+| Línea al agua | sí/no | no |  | `dropLine` |
 | Posición *(lectura)* | texto |  |  | `position` |
 | Altura sobre el agua *(lectura)* | texto |  |  | `heightOverWater` |
 
@@ -439,8 +440,8 @@ Todos los parámetros ajustables (menos los de lectura y los botones) se guardan
 |---|---|---|---|---|
 | Vista de buffer | lista | Final | Final / Albedo / Normales / Profundidad / Oclusión (AO) / Rugosidad | `view` |
 | Rango profundidad (m) | número | 60 | 5 – 300 | `depthRange` |
-| Línea de tiempo | sí/no | sí |  | `timeline` |
-| Estadísticas | sí/no | sí |  | `visible` |
+| Línea de tiempo | sí/no | no |  | `timeline` |
+| Estadísticas | sí/no | no |  | `visible` |
 
 ## Presets y URL
 
@@ -467,7 +468,7 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | `cielo` | `enabled`, `model`, `ozone`, `multiScattering`, `place`, `lat`, `lon`, `tz`, `date`, `hour`, `animate`, `timeSpeed`, `turbidity`, `rayleigh`, `mieCoefficient`, `mieDirectionalG`, `skyBrightness`, `sunStrength`, `ambientStrength`, `moonStrength`, `stars`, `cloudLight`, `fogDensity` |
 | `nubes` | `enabled`, `coverage`, `density`, `base`, `thickness`, `type`, `windSpeed`, `windDirection`, `scale`, `steps`, `lightSteps`, `maxDistance`, `resolution`, `temporal`, `shadows` |
 | `oceano` | `enabled`, `mode`, `waterType`, `level`, `windSpeed`, `windDirection`, `fetch`, `windAlign`, `swellHeight`, `swellPeriod`, `swellDirection`, `swellSpread`, `shortWaveCut`, `seed`, `choppiness`, `gAmplitude`, `gWavelength`, `gDirection`, `gSpread`, `gSteepness`, `scatterColor`, `clarity`, `sss`, `roughness`, `reflections`, `foam`, `foamJacobian`, `foamDecay`, `haze`, `refraction`, `buoys` |
-| `agua` | `enabled`, `splashes`, `density`, `sizeScale`, `brightness`, `waves`, `rippleSpeed`, `foamLife`, `wake`, `curtains`, `bubbles`, `dynamicWet`, `showProbes` |
+| `agua` | `enabled`, `splashes`, `density`, `sizeScale`, `brightness`, `waves`, `rippleSpeed`, `foamLife`, `wake`, `curtains`, `bubbles`, `breathFoam`, `dynamicWet`, `showProbes` |
 | `bajoagua` | `enabled`, `godRays`, `steps`, `scattering`, `caustics`, `causticSharpness`, `surfaceCaustics`, `rayClouds`, `distortion`, `chroma`, `blur`, `vignette`, `lensDrops`, `snow` |
 | `calidad` | `profile` |
 | `peces` | `enabled`, `schoolCount`, `schoolSize`, `schoolSpeed`, `separation`, `alignment`, `cohesion`, `flee`, `schoolDepth`, `schoolDistance` |
@@ -476,5 +477,5 @@ Módulos y claves que se guardan (`#modulo.clave=valor`; en los presets: `{ "val
 | `secuencia` | `loop`, `deepTime`, `deepDepth`, `swimTime`, `swimDepth`, `surfaceTime`, `surfaceDepth`, `autoCamera` |
 | `modelo` | `wetness`, `wetDarken`, `normalMap`, `normalScale`, `aoIntensity`, `wireframe`, `barbs` |
 | `lod` | `mode`, `dist1`, `dist2` |
-| `ayudas` | `grid`, `gridHeight`, `axes`, `box`, `water`, `waterLevel`, `waterOpacity`, `waterColor`, `sunHelper`, `human` |
+| `ayudas` | `grid`, `gridHeight`, `axes`, `box`, `water`, `waterLevel`, `waterOpacity`, `waterColor`, `sunHelper` |
 | `debug` | `view`, `depthRange`, `timeline` |
