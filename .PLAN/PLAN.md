@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.27 · 29/09/2026
+Versión 0.28 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -268,6 +268,18 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
   - Hecho: `forceWebGL` sin `navigator.gpu` (o con `?webgl`). Sin compute: olas de Gerstner, sin salpicaduras ni ondas de la ballena; perfil Bajo y aviso. Probado con `?webgl` sin errores.
 
 Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
+
+---
+
+## [x] Ampliaciones (peticiones durante el desarrollo)
+
+- [x] **Selector de renderizador en la GUI** (29/09/2026): *Calidad* → «Renderizador (recarga)», WebGPU / WebGL2 (recarga la página conservando los ajustes).
+- [x] **Peces sueltos y cardumen** (29/09/2026): `src/life/fish.js`.
+  - Peces procedurales con coletazo en el vertex shader y luz con cáusticas bajo el agua.
+  - Cardumen de 500 peces con boids (10 vecinos por pez, huida de la ballena): se organiza en ~10 s con polarización 0,96–0,99 y cuesta 0,54 ms de CPU.
+  - 4 peces sueltos que deambulan.
+  - Funciona también en WebGL2.
+  - Detalle: [docs/peces.md](docs/peces.md).
 
 ---
 

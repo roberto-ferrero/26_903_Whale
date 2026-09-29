@@ -6,7 +6,7 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
@@ -15,6 +15,14 @@ export function createGui(m) {
   fQ.add(quality.state, 'profile', quality.levels).name('Perfil').onChange(() => quality.apply());
   fQ.add(quality.state, 'active').name('Nivel activo').listen().disable();
   fQ.add(quality.state, 'frameMs').name('Tiempo por fotograma').listen().disable();
+  // renderizador: WebGPU o WebGL2 (Fase 8.5); cambiarlo recarga la página conservando los ajustes
+  const rend = { backend: viewer.compute ? 'WebGPU' : 'WebGL2' };
+  fQ.add(rend, 'backend', navigator.gpu ? ['WebGPU', 'WebGL2'] : ['WebGL2']).name('Renderizador (recarga)').onChange((b) => {
+    params.writeURL?.();
+    const url = new URL(location.href);
+    if (b === 'WebGL2') url.searchParams.set('webgl', ''); else url.searchParams.delete('webgl');
+    location.href = url.toString();
+  });
 
   // ------------------------------------------------------------------ secuencia (Fase 7.1)
   const fSeq = gui.addFolder('Secuencia');
@@ -274,6 +282,22 @@ export function createGui(m) {
   fPost.add(ps, 'temperature', -1, 1, 0.01).name('Temperatura (frío - cálido)').onChange(pa);
   fPost.add(ps, 'vignette', 0, 1, 0.01).name('Viñeta').onChange(pa);
   fPost.add(ps, 'grain', 0, 0.4, 0.005).name('Grano').onChange(pa);
+
+  // ------------------------------------------------------------------ peces
+  const fFish = gui.addFolder('Peces');
+  const fs = fish.state;
+  fFish.add(fs, 'enabled').name('Peces').onChange(() => fish.apply());
+  fFish.add(fs, 'info').name('Estado').listen().disable();
+  fFish.add(fs, 'schoolCount', 0, 1200, 10).name('Peces en el cardumen');
+  fFish.add(fs, 'schoolSize', 0.08, 0.5, 0.01).name('Tamaño (m)');
+  fFish.add(fs, 'schoolSpeed', 0.3, 4, 0.05).name('Velocidad (m/s)');
+  fFish.add(fs, 'schoolDepth', 2, 25, 0.5).name('Profundidad (m)');
+  fFish.add(fs, 'separation', 0, 4, 0.05).name('Separación');
+  fFish.add(fs, 'alignment', 0, 4, 0.05).name('Alineación');
+  fFish.add(fs, 'cohesion', 0, 4, 0.05).name('Cohesión');
+  fFish.add(fs, 'flee', 0, 4, 0.05).name('Huida de la ballena');
+  fFish.add(fs, 'loners', 0, 10, 1).name('Peces sueltos');
+  fFish.add(fs, 'lonerSize', 0.2, 2, 0.05).name('Tamaño sueltos (m)');
 
   // ------------------------------------------------------------------ bajo el agua (Fase 6)
   const fUnder = gui.addFolder('Bajo el agua');

@@ -26,6 +26,7 @@ import { createSequence } from './core/sequence.js';
 import { createAudio } from './audio/audio.js';
 import { createQuality } from './core/quality.js';
 import { createRecorder } from './core/recorder.js';
+import { createFish } from './life/fish.js';
 import { output, positionWorld, vec4 } from 'three/tsl';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
@@ -88,6 +89,7 @@ const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, 
 const sequence = createSequence({ fsm, cameras, helpers, anchor }); // Fase 7.1
 const audio = createAudio({ camera: viewer.camera, fsm, ocean, under }); // Fase 7.4
 const recorder = createRecorder({ canvas: viewer.renderer.domElement }); // Fase 8.4
+const fish = createFish({ scene: viewer.scene, ocean, water, camera: viewer.camera }); // cardumen y peces sueltos
 let gui = null;
 const quality = createQuality({ // Fase 8.1
   viewer, clouds, under, post, water, onChange: () => gui?.controllersRecursive().forEach((c) => c.updateDisplay()),
@@ -109,6 +111,7 @@ params.add('oceano', ocean.state, () => ocean.apply(), Object.keys(ocean.state).
 params.add('agua', water.state, water.apply, Object.keys(water.state).filter((k) => k !== 'info'));
 params.add('bajoagua', under.state, under.apply, Object.keys(under.state).filter((k) => k !== 'info'));
 params.add('calidad', quality.state, quality.apply, ['profile']);
+params.add('peces', fish.state, fish.apply, Object.keys(fish.state).filter((k) => k !== 'info'));
 params.add('post', post.state, post.apply);
 params.add('audio', audio.state, audio.apply, ['volume', 'ocean', 'effects', 'song']); // sin 'enabled': el navegador exige un clic
 params.add('secuencia', sequence.state, () => {}, ['loop', 'deepTime', 'deepDepth', 'surfaceTime', 'surfaceDepth', 'autoCamera']);
@@ -117,7 +120,7 @@ params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
 params.add('debug', debug.state, debug.apply);
 const presets = loadBuiltinPresets();
-gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
+gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, fish, viewer, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
 applySky();
 if (!viewer.compute) {
   // Fase 8.5: WebGL2 (sin WebGPU): perfil bajo y aviso de lo que no está disponible
@@ -158,6 +161,7 @@ function frame(realDt) {
   sky.renderEnv(); // entorno PMREM con el cielo y las nubes ya actualizados
   ocean.update(dt, sky.light, viewer.sun); // oleaje FFT (compute) y luz del agua (Fase 4)
   water.update(dt, sky.light, viewer.sun); // sondas, ondas, espuma y salpicaduras (Fase 5)
+  fish.update(dt);
   under.update(realDt); // ¿cámara bajo el agua? (Fase 6)
   snow.update(dt, under.underwater, under.state.snow);
   audio.update(realDt);
@@ -188,7 +192,7 @@ function frame(realDt) {
 if (import.meta.env.DEV) {
   const renderer = viewer.renderer;
   window.whaleViewer = {
-    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, quality, recorder, helpers,
+    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, quality, recorder, fish, helpers,
     get gui() { return gui; }, skeleton, anchor, cameras, debug, params,
     /** Dibuja n fotogramas a paso fijo aunque la pestaña esté oculta; devuelve el tiempo de GPU del último (ms). */
     async renderFrames(n = 1, realDt = 1 / 30, size = [1280, 720]) {
