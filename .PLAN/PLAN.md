@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.31 · 29/09/2026
+Versión 0.32 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -298,6 +298,13 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
     - las burbujas siguen una corriente submarina propia (0,25 m/s, ajustable): antes se las llevaba el viento;
     - la versión anterior se conserva como estilo *En superficie*.
   - Detalle: [docs/respiracion.md](docs/respiracion.md).
+- [x] **Arranque, formato de cine e interfaz** (29/09/2026): `src/core/ui.js`.
+  - Cortina azul oscuro con los mensajes reales de la inicialización y barra de progreso. Fundido a la animación cuando la imagen se estabiliza.
+  - La cámara empieza bajo la ballena, a contraluz del sol, y viaja en arco a la posición de seguimiento (7 s).
+  - Bandas negras de cine (franja 2,4:1).
+  - Cabecera «PROJECT 26903_WHALE / ESTUDIO 01 · Humpback Whale Simulation» y backend (WebGPU · Three.js r186).
+  - Pie con FPS, ms, resolución, dibujos y triángulos. Paleta azul, también en el panel.
+  - Detalle: [docs/arranque.md](docs/arranque.md).
 - [x] **Valores por defecto y ayudas** (29/09/2026, petición de Roberto):
   - Panel replegado y ninguna ayuda en pantalla por defecto (ni ejes, ni marcadores, ni trayectoria, ni línea de tiempo, ni estadísticas).
   - La tecla **B** las muestra u oculta todas a la vez: ancla con su línea al agua, hueso seleccionado, trayectoria del salto, dirección del sol, línea de tiempo y estadísticas. Respirar pasa a la tecla **R**.

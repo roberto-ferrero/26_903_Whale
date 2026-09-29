@@ -55,6 +55,13 @@ export function createCameras(viewer, getWhalePose, waterState, getWhaleState, g
   lastSmooth.copy(smoothPos);
   controls.target.copy(smoothPos);
 
+  // arranque (29/09/2026): la cámara empieza en un encuadre fijo respecto a la ballena (desde abajo,
+  // a contraluz) y, al soltarlo, viaja hasta la posición de seguimiento. Todo relativo a la ballena,
+  // así la acompaña durante el viaje
+  const intro = { active: false, snap: false, t: 0, duration: 6, released: false, fromPos: new THREE.Vector3(), fromTarget: new THREE.Vector3(), toPos: new THREE.Vector3() };
+  const introP = new THREE.Vector3(), introT = new THREE.Vector3(), dirA = new THREE.Vector3(), dirB = new THREE.Vector3();
+  const qA = new THREE.Quaternion(), qK = new THREE.Quaternion(), qI = new THREE.Quaternion();
+
   let cutFlag = false; // corte seco en este fotograma (el motion blur lo ignora)
   function startBlend(duration = state.transition) {
     if (duration <= 0) cutFlag = true;
@@ -123,6 +130,20 @@ export function createCameras(viewer, getWhalePose, waterState, getWhaleState, g
     apply,
     /** true durante el fotograma de un corte seco (lo lee el posprocesado y lo limpia). */
     consumeCut() { const c = cutFlag; cutFlag = false; return c; },
+    /**
+     * Encuadre de arranque: posición y objetivo de la cámara relativos a la ballena (m, ejes del
+     * mundo) y posición relativa final (la de seguimiento). Se mantiene hasta `releaseIntro`.
+     */
+    setIntro(fromPos, fromTarget, toPos) {
+      intro.active = true; intro.snap = true; intro.released = false; intro.t = 0;
+      intro.fromPos.copy(fromPos); intro.fromTarget.copy(fromTarget); intro.toPos.copy(toPos);
+      state.mode = 'Seguimiento';
+      apply();
+      blend.t = 1;
+    },
+    /** Suelta el encuadre de arranque: viaja a la posición de seguimiento en `duration` s. */
+    releaseIntro(duration = 6) { intro.released = true; intro.duration = duration; intro.t = 0; },
+    get introActive() { return intro.active; },
     /** Sustituye el director (estado de la ballena → plano); null = el de por defecto. */
     setDirector(fn) { director = fn; currentShot = ''; },
     /** Encuadre predefinido alrededor de la ballena (pasa a órbita libre). */
@@ -145,7 +166,24 @@ export function createCameras(viewer, getWhalePose, waterState, getWhaleState, g
       smoothPos.lerp(whalePos, 1 - Math.exp(-state.followSmoothing * realDt));
       railTime += simDt * state.railSpeed;
 
-      if (state.mode === 'Seguimiento') {
+      if (intro.active && state.mode !== 'Seguimiento') intro.active = false; // el usuario cambió de modo
+      if (intro.active) {
+        // la ballena se coloca en su primer fotograma: la cámara se engancha ya (sin perseguirla)
+        if (intro.snap) { smoothPos.copy(whalePos); lastSmooth.copy(whalePos); intro.snap = false; }
+        if (intro.released) intro.t = Math.min(1, intro.t + realDt / Math.max(intro.duration, 1e-3));
+        const k = intro.t * intro.t * intro.t * (intro.t * (intro.t * 6 - 15) + 10); // smootherstep
+        // viaje en arco alrededor de la ballena (dirección esférica y distancia por separado): en
+        // línea recta la cámara pasaba casi a través de ella
+        dirA.copy(intro.fromPos).normalize();
+        dirB.copy(intro.toPos).normalize();
+        qA.setFromUnitVectors(dirA, dirB);
+        introP.copy(dirA).applyQuaternion(qK.slerpQuaternions(qI, qA, k))
+          .multiplyScalar(THREE.MathUtils.lerp(intro.fromPos.length(), intro.toPos.length(), k));
+        introT.copy(intro.fromTarget).multiplyScalar(1 - k);
+        camera.position.copy(smoothPos).add(introP);
+        controls.target.copy(smoothPos).add(introT);
+        if (intro.t >= 1) intro.active = false;
+      } else if (state.mode === 'Seguimiento') {
         // la cámara y el objetivo se desplazan con la ballena; el usuario puede orbitar a la vez
         const delta = smoothPos.clone().sub(lastSmooth);
         camera.position.add(delta);

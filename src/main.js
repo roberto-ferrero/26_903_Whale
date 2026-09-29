@@ -27,38 +27,42 @@ import { createAudio } from './audio/audio.js';
 import { createQuality } from './core/quality.js';
 import { createRecorder } from './core/recorder.js';
 import { createFish } from './life/fish.js';
+import { createUi } from './core/ui.js';
 import { output, positionWorld, vec4 } from 'three/tsl';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
 const WET_URL = `${import.meta.env.BASE_URL}models/whale_wet_2k.ktx2`;
 
 const container = document.querySelector('#app');
-const message = document.createElement('div');
-message.className = 'message';
-message.textContent = 'Cargando ballena…';
-container.appendChild(message);
+// presentación (29/09/2026): cortina azul con los pasos de la inicialización, cabecera y pie
+const ui = createUi(document.body, navigator.gpu && !new URLSearchParams(location.search).has('webgl') ? 'WebGPU' : 'WebGL2');
+await ui.step('Iniciando el renderizador WebGPU…', 0.04);
 
 const viewer = await createViewer(container);
+ui.setBackend(viewer.compute ? 'WebGPU' : 'WebGL2 (fallback)');
 
 let whale;
 try {
+  await ui.step('Cargando la ballena (malla, esqueleto y texturas)…', 0.1);
   whale = await loadWhale(MODEL_URL, WET_URL, viewer.renderer);
 } catch (err) {
   console.error(err);
-  message.innerHTML = 'No se pudo cargar <code>public/models/whale.glb</code>.<br>'
+  ui.error('No se pudo cargar <code>public/models/whale.glb</code>.<br>'
     + 'El modelo no se versiona (licencia de CGTrader): genéralo con el proceso de '
     + '<code>.PLAN/docs/fase_1_8_exportacion.md</code> y copia <code>whale.glb</code> y '
-    + '<code>whale_wet_2k.ktx2</code> a <code>public/models/</code>.';
+    + '<code>whale_wet_2k.ktx2</code> a <code>public/models/</code>.');
   throw err;
 }
-message.remove();
 viewer.scene.add(whale.root);
 
 // ------------------------------------------------------------------ módulos
 const clock = createSimClock();
+await ui.step('Generando las nubes volumétricas…', 0.3);
 const clouds = await createClouds(viewer.renderer, viewer.scene);
+await ui.step('Calculando el cielo y la luz del sol…', 0.4);
 const sky = createSky(viewer, [clouds.envMesh]);
 const lighting = createLighting(viewer, () => sky.state.enabled);
+await ui.step('Generando el océano (espectro y FFT)…', 0.48);
 const ripples = viewer.compute ? createRipples(viewer.renderer) : null; // ondas y espuma de la ballena (Fase 5); sin compute no hay
 const ocean = createOcean({
   renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, clouds, sky, getTime: () => clock.state.time, ripples,
@@ -74,6 +78,7 @@ helpers.setWaterShadow((p) => clouds.cloudShadowNode(p)); // sombras de nubes so
 const fsm = createWhaleStates(viewer.scene, whale, anim, helpers.state);
 fsm.setWaterHeight((x, z) => ocean.heightAt(x, z)); // la respiración sigue la ola local
 const skeleton = createSkeletonHelpers(viewer.scene, whale);
+await ui.step('Preparando salpicaduras, burbujas y espuma…', 0.56);
 const water = createInteraction({ renderer: viewer.renderer, scene: viewer.scene, whale, ocean, ripples, fsm });
 const under = createUnderwater({ renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, ocean }); // Fase 6
 const snow = createSnow({ scene: viewer.scene, ocean });
@@ -90,6 +95,7 @@ const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, 
 const sequence = createSequence({ fsm, cameras, helpers, anchor, skeleton }); // Fase 7.1
 const audio = createAudio({ camera: viewer.camera, fsm, ocean, under }); // Fase 7.4
 const recorder = createRecorder({ canvas: viewer.renderer.domElement }); // Fase 8.4
+await ui.step('Soltando el cardumen…', 0.62);
 const fish = createFish({ scene: viewer.scene, ocean, water, camera: viewer.camera }); // cardumen y peces sueltos
 let gui = null;
 const quality = createQuality({ // Fase 8.1
@@ -172,6 +178,9 @@ window.addEventListener('keydown', (e) => {
 function frame(realDt) {
   const dt = clock.tick(realDt);
   sequence.update(dt); // Fase 7.1
+  // durante el arranque la ballena solo nada (la primera respiración o salto, cuando la cámara ya
+  // está en su sitio)
+  if (cameras.introActive && fsm.state.current === 'nadar') fsm.state.timeInState = 0;
   fsm.update(dt); // incluye el mixer de animación
   cameras.update(realDt, dt);
   sky.update(dt);
@@ -255,7 +264,7 @@ if (import.meta.env.DEV) {
       await this.renderFrames(frames);
       const c = renderer.domElement;
       const t = document.createElement('canvas');
-      t.width = 1280; t.height = 720;
+      t.width = 1280; t.height = Math.round((1280 * c.height) / Math.max(c.width, 1)); // conserva el encuadre (2,4:1)
       t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
       const res = await fetch(`/__capture?name=${encodeURIComponent(name)}`, { method: 'POST', body: t.toDataURL('image/jpeg', 0.85) });
       return res.text();
@@ -263,9 +272,59 @@ if (import.meta.env.DEV) {
   };
 }
 
+// ------------------------------------------------------------------ arranque (29/09/2026)
+// la cámara empieza bajo la ballena, mirando hacia arriba a contraluz del sol (el encuadre de
+// referencia) y, cuando la imagen ya es estable y la cortina se ha fundido, viaja hasta la posición
+// de seguimiento
+const FOLLOW_OFFSET = new THREE.Vector3(16, 4.3, 10.8); // seguimiento por defecto, respecto a la ballena
+{
+  const sunH = new THREE.Vector3(sky.light.dir.x, 0, sky.light.dir.z);
+  if (sunH.lengthSq() < 1e-4) sunH.set(1, 0, 0);
+  sunH.normalize();
+  const heading = fsm.getPose(new THREE.Vector3());
+  const fwd = new THREE.Vector3(Math.sin(heading), 0, Math.cos(heading));
+  // debajo y del lado contrario al sol: al mirar a la ballena se mira también hacia el sol
+  const from = new THREE.Vector3().addScaledVector(sunH, -6).addScaledVector(fwd, -3).setY(-13);
+  const target = fwd.clone().multiplyScalar(2).setY(0.5);
+  cameras.setIntro(from, target, FOLLOW_OFFSET);
+}
+
+// métricas del pie (dos veces por segundo)
+let mFrames = 0, mTime = 0, mMs = 0;
+function updateMetrics(realDt) {
+  mFrames++; mTime += realDt;
+  if (mTime < 0.5) return;
+  const fps = mFrames / mTime;
+  mMs = (mTime / mFrames) * 1000;
+  mFrames = 0; mTime = 0;
+  const r = viewer.renderer.info.render;
+  const s = viewer.renderer.getDrawingBufferSize(new THREE.Vector2());
+  ui.setMetrics(`${fps.toFixed(1)} FPS · ${mMs.toFixed(2)} ms/fotograma · ${s.x} × ${s.y} · `
+    + `${(r.drawCalls ?? r.calls ?? 0).toLocaleString('es-ES')} dibujos · `
+    + `${(r.triangles ?? 0).toLocaleString('es-ES')} triángulos · calidad: ${quality.state.active}`);
+}
+
 // ------------------------------------------------------------------ bucle
+await ui.step('Compilando shaders…', 0.7);
 const timer = new THREE.Timer();
+let warm = 0, warmTime = 0, revealed = false;
+const recent = [];
 viewer.renderer.setAnimationLoop((time) => {
   timer.update(time);
-  frame(Math.min(timer.getDelta(), 0.1));
+  const realDt = Math.min(timer.getDelta(), 0.1);
+  frame(realDt);
+  updateMetrics(realDt);
+  if (revealed) return;
+  // se funde cuando la imagen es estable: al menos 1,5 s y 45 fotogramas dibujados y los últimos 15
+  // sin tirones (compilación de shaders); como mucho, 12 s
+  warm++; warmTime += realDt;
+  recent.push(realDt); if (recent.length > 15) recent.shift();
+  const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+  const worst = Math.max(...recent);
+  if (warm === 3) ui.step('Estabilizando la imagen…', 0.85);
+  if ((warm > 45 && warmTime > 1.5 && recent.length === 15 && worst < Math.max(0.06, avg * 2.5)) || warmTime > 12) {
+    revealed = true;
+    ui.reveal(2.2);
+    setTimeout(() => cameras.releaseIntro(7), 3200); // la cámara viaja tras un momento a contraluz
+  }
 });

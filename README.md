@@ -37,6 +37,7 @@ El modelo de CGTrader tiene licencia *Royalty Free*, que no permite redistribuir
 
 - **Secuencia completa:** carpeta *Secuencia* → «▶ Reproducir secuencia» (tecla **P**): nada → respira (soplido) → nada → salta → nada → respira → nada → respira, con cámaras automáticas.
 - **Teclado:** **Espacio** pausa · **.** avanza un fotograma · **J** salta ahora · **R** respira ahora · **B** muestra u oculta las ayudas de depuración · **C** cambia de modo de cámara · **P** reproduce o para la secuencia.
+- **Arranque:** cortina azul con los pasos de la carga; al estabilizarse la imagen se funde y la cámara viaja desde un contraluz bajo la ballena hasta el seguimiento. Formato de cine (2,4:1) con pie de métricas.
 - **Por defecto:** panel replegado, sin ayudas en pantalla, agua tropical clara, y profundidad de campo y motion blur activados (perfil Alto).
 - **Calidad:** carpeta *Calidad*, con los perfiles Bajo, Medio, Alto (por defecto), Ultra y Automático (baja o sube según los fps).
 - **Presets y URL:** carpeta *Presets y URL*. Hay 10 presets (mediodía, atardecer, tormenta, noche, mar en calma, mar agitado…), y todos los ajustes se guardan en la URL (`#modulo.clave=valor`) y se pueden exportar a JSON.

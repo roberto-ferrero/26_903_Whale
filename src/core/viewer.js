@@ -21,7 +21,15 @@ export async function createViewer(container) {
   const forceWebGL = !navigator.gpu || new URLSearchParams(location.search).has('webgl');
   const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL, trackTimestamp: import.meta.env.DEV && !forceWebGL });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  // encuadre de cine (29/09/2026): se dibuja solo una franja 2,4:1 centrada; el resto de la ventana
+  // queda en negro (bandas arriba y abajo, o a los lados si la ventana es más ancha)
+  const frame = { letterbox: true, aspect: 2.4 };
+  const viewSize = () => {
+    const W = window.innerWidth, H = window.innerHeight;
+    if (!frame.letterbox) return [W, H];
+    return [Math.round(Math.min(W, H * frame.aspect)), Math.round(Math.min(H, W / frame.aspect))];
+  };
+  renderer.setSize(...viewSize());
   renderer.toneMapping = THREE.AgXToneMapping;
   renderer.toneMappingExposure = 1;
   container.appendChild(renderer.domElement);
@@ -30,13 +38,13 @@ export async function createViewer(container) {
   // etiquetas HTML (nombres de huesos) sobre el canvas
   const labelRenderer = new CSS2DRenderer();
   labelRenderer.domElement.className = 'labels';
-  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(...viewSize());
   container.appendChild(labelRenderer.domElement);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1d2b3a);
 
-  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 60000); // océano hasta el horizonte
+  const camera = new THREE.PerspectiveCamera(40, viewSize()[0] / viewSize()[1], 0.1, 60000); // océano hasta el horizonte
   camera.position.set(16, 5, 12);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -62,10 +70,11 @@ export async function createViewer(container) {
   updateSun();
 
   const onResize = () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const [w, h] = viewSize();
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(w, h);
+    labelRenderer.setSize(w, h);
   };
   window.addEventListener('resize', onResize);
 
@@ -75,7 +84,8 @@ export async function createViewer(container) {
   const ensureSize = () => {
     if (window.innerWidth === 0 || window.innerHeight === 0) return false;
     renderer.getSize(size);
-    if (size.x !== window.innerWidth || size.y !== window.innerHeight) onResize();
+    const [w, h] = viewSize();
+    if (size.x !== w || size.y !== h) onResize();
     return true;
   };
 
@@ -83,5 +93,5 @@ export async function createViewer(container) {
 
   // compute shaders (FFT del océano, partículas, ondas): solo con WebGPU
   const compute = renderer.backend.isWebGPUBackend === true;
-  return { renderer, labelRenderer, scene, camera, controls, sun, sunParams, updateSun, hemi, backend, compute, ensureSize };
+  return { renderer, labelRenderer, scene, camera, controls, sun, sunParams, updateSun, hemi, backend, compute, ensureSize, frame, applyFrame: onResize };
 }
