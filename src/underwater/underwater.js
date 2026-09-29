@@ -20,10 +20,12 @@ import {
 export function createUnderwater({ renderer, scene, camera, ocean }) {
   const state = {
     enabled: true,
-    godRays: 2,
+    godRays: 5,
     steps: 16,
     scattering: 1, // turbidez: partículas que dispersan la luz
-    caustics: 1,
+    caustics: 1.5,
+    causticSharpness: 0.75, // 0 = suaves, 1 = líneas muy finas
+    surfaceCaustics: 1,
     distortion: 1,
     chroma: 1,
     blur: 1,
@@ -164,6 +166,8 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
     u.steps.value = Math.max(1, Math.round(state.steps));
     u.sigmaS.value = 0.03 * state.scattering * 14 / Math.max(ocean.state.clarity, 0.5);
     ou.caustics.value = state.caustics;
+    ou.causticEps.value = 0.5 * (1 - state.causticSharpness) + 0.03;
+    ou.surfaceCaustics.value = state.surfaceCaustics;
     u.distortion.value = state.distortion;
     u.chroma.value = state.chroma;
     u.blur.value = state.blur;

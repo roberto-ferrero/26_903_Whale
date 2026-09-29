@@ -214,10 +214,12 @@ export function createGui(m) {
   const ua = () => under.apply();
   fUnder.add(us, 'enabled').name('Efectos bajo el agua').onChange(ua);
   fUnder.add(us, 'info').name('Cámara').listen().disable();
-  fUnder.add(us, 'godRays', 0, 3, 0.05).name('God rays').onChange(ua);
+  fUnder.add(us, 'godRays', 0, 8, 0.05).name('God rays').onChange(ua);
   fUnder.add(us, 'steps', 2, 48, 1).name('Pasos (god rays)').onChange(ua);
   fUnder.add(us, 'scattering', 0, 4, 0.05).name('Turbidez (dispersión)').onChange(ua);
-  fUnder.add(us, 'caustics', 0, 3, 0.05).name('Cáusticas').onChange(ua);
+  fUnder.add(us, 'caustics', 0, 3, 0.05).name('Cáusticas (ballena y partículas)').onChange(ua);
+  fUnder.add(us, 'causticSharpness', 0, 1, 0.01).name('Nitidez de las cáusticas').onChange(ua);
+  fUnder.add(us, 'surfaceCaustics', 0, 3, 0.05).name('Brillo de la superficie (desde abajo)').onChange(ua);
   fUnder.add(us, 'snow', 0, 3, 0.05).name('Partículas en suspensión');
   fUnder.add(us, 'distortion', 0, 4, 0.05).name('Distorsión').onChange(ua);
   fUnder.add(us, 'chroma', 0, 4, 0.05).name('Aberración cromática').onChange(ua);

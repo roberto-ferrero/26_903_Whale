@@ -123,11 +123,13 @@ export function createFFTOcean(renderer, spec) {
     t.anisotropy = 4;
     return t;
   };
-  const disp = [], deriv = [], post = [];
+  const disp = [], deriv = [], hess = [], post = [];
   for (let c = 0; c < C; c++) {
-    const td = makeTex(), tv = makeTex();
+    const td = makeTex(), tv = makeTex(), th = makeTex();
     disp.push(td);
     deriv.push(tv);
+    hess.push(th);
+    const dx2 = 2 * (spec.lengths[c] / N);
     post.push(Fn(() => {
       const local = instanceIndex;
       const idx = local.add(c * NN);
@@ -144,6 +146,12 @@ export function createFFTOcean(renderer, spec) {
       foam.element(idx).assign(f);
       textureStore(td, uvec2(x, y), vec4(a.x.mul(lam), a.z, a.y.mul(lam), 0)).toWriteOnly();
       textureStore(tv, uvec2(x, y), vec4(b.x, b.y, J, f)).toWriteOnly();
+      // curvatura de la superficie (hessiano de la altura) por diferencias centrales de las
+      // pendientes: la usan las cáusticas (dónde enfoca la luz cada ola)
+      const at = (ix, iy) => bufs.B.element(iy.mod(N).mul(N).add(ix.mod(N)).add(c * NN));
+      const xp = at(x.add(1), y), xm = at(x.add(N - 1), y), yp = at(x, y.add(1)), ym = at(x, y.add(N - 1));
+      const hxx = xp.x.sub(xm.x).div(dx2), hzz = yp.y.sub(ym.y).div(dx2), hxz = yp.x.sub(ym.x).div(dx2);
+      textureStore(th, uvec2(x, y), vec4(hxx, hzz, hxz, 0)).toWriteOnly();
     })().compute(NN, [64]));
   }
 
@@ -153,6 +161,7 @@ export function createFFTOcean(renderer, spec) {
     uniforms: u,
     disp,
     deriv,
+    hess,
     lengths: spec.lengths,
     /** Sustituye el espectro inicial (mismo tamaño). */
     setSpectrum(s) {

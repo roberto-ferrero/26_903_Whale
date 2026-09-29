@@ -90,21 +90,32 @@ El océano pasa a `DoubleSide`. En la cara de atrás (`frontFacing` falso):
 
 ## 6.5 Cáusticas
 
-`causticNode(p)`:
+> Revisión del 29/09/2026, a petición de Roberto: la primera versión (jacobiano del desplazamiento) daba manchas suaves. Ahora las cáusticas se calculan con la curvatura real de la superficie y forman la red de líneas brillantes de las fotos (y de las piscinas). También hay destellos y cáusticas en la cara inferior de la superficie, y los god rays llegan hasta 8.
 
-- **Punto de la superficie:** el del recorrido del sol refractado.
-- **Intensidad:**
-  - El jacobiano J de las cascadas medianas (97 m) y pequeñas (19 m) indica dónde enfoca la ola: con J < 1 converge la luz.
-  - I = (1 + 4·w₁·(1 − J₁) + 3·w₂·(1 − J₂))², donde los pesos crecen con la profundidad y el oleaje pequeño se apaga hacia los 12 m.
-- **Nitidez:**
-  - Se difuminan con la profundidad (nivel de mip log2(1 + 0,3·D)).
-  - Los haces (6.4) usan un mip más fino (0,08·D) para verse más definidos.
-- **Sombras:** se multiplican por la sombra de las nubes en ese punto de la superficie.
+| Ballena a 4 m con cáusticas | Superficie desde abajo: sol, destellos y haces |
+|---|---|
+| ![](img/fase_6/causticas_ballena.jpg) | ![](img/fase_6/superficie_desde_abajo.jpg) |
 
-`underLightNode(p)` = absorción desde la superficie × (1 + fracción de sol × (cáusticas − 1)). Se aplica:
-
-- **A la ballena:** `outputNode` de sus materiales. Toda su luz se atenúa y ondula con las cáusticas; se nota también desde arriba a través de la refracción.
-- **A las salpicaduras, burbujas y partículas en suspensión.**
+- **Curvatura:** el pase `post` de la FFT escribe una tercera textura por cascada con el hessiano de la altura (∂²h/∂x², ∂²h/∂z², ∂²h/∂x∂z), por diferencias centrales de las pendientes.
+- **`causticAt(xzS, D)`:** cada ola actúa de lente. El haz que entra por un trozo de superficie se desplaza D·κ·H a una profundidad D (κ = 1 − 1/n ≈ 0,25, con D alargado por la inclinación del sol refractado).
+  - La intensidad es el cociente de áreas **I = 1 / |det(I + D·κ·H)|**.
+  - Donde el determinante pasa por 0 (los pliegues) aparecen las líneas brillantes.
+  - Se limita con un ε (la "nitidez") y a un máximo de 8.
+- **Cascadas que intervienen:**
+  - La de 97 m enfoca a decenas de metros.
+  - La de 19 m enfoca a pocos metros y se apaga hacia los 15 m.
+  - Más allá de 12-35 m el patrón se deshace y la luz vuelve a ser uniforme, como en el mar abierto real.
+- **`causticNode(p)`:** busca el punto de la superficie por donde entra el sol que llega a p y lo multiplica por la sombra de las nubes.
+  - Con `soft` (god rays) usa un mip más grueso y un ε 3 veces mayor: haces sin centelleo.
+- **`underLightNode(p)`:** absorción desde la superficie × (1 + fracción de sol × (cáusticas − 1)), con una fracción de sol de 0,75 × el factor de altura del sol.
+  - Se aplica a la ballena (`outputNode`), a las salpicaduras, las burbujas y la nieve marina.
+  - Solo hay cáusticas cuando las condiciones de luz lo permiten: el efecto se multiplica por la altura del sol y la sombra de las nubes. De noche, o bajo una nube, desaparece.
+- **Cara inferior de la superficie:**
+  - Destellos del sol visto a través de las olas (dirección refractada alineada con el sol, fuera de la reflexión total).
+  - Red de cáusticas que se forma justo bajo la superficie (a 1,2 m).
+  - Ambos con la misma condición de luz.
+- **Parámetros** (carpeta *Bajo el agua*): "God rays" 0-8 (5 por defecto), "Cáusticas (ballena y partículas)" 0-3 (1,5), "Nitidez de las cáusticas" 0-1 (0,75) y "Brillo de la superficie (desde abajo)" 0-3 (1).
+- **Coste:** una muestra de textura por cascada y evaluación. Con la ballena cubriendo la pantalla bajo el agua, el fotograma sube a unos 10 ms a 720p (16 pasos de god rays).
 
 ## 6.6 Burbujas
 
@@ -144,7 +155,7 @@ Solo en los píxeles bajo el agua:
 ## Límites conocidos y trabajo futuro
 
 - **Ventana de Snell aproximada:** usa la imagen ya dibujada desplazada, no una refracción geométrica real, así que el cielo no se comprime en el cono de 97°. Además, el sol no aparece como un disco brillante propio (solo el de la cúpula).
-- **Cáusticas:** salen del jacobiano del desplazamiento horizontal, una aproximación de la curvatura. No hay cáusticas en un fondo marino (no hay fondo).
+- **Cáusticas:** la intensidad se evalúa en el punto de la superficie por donde entra la luz, sin el desplazamiento lateral del haz (pequeño a pocos metros). No hay cáusticas en un fondo marino porque no hay fondo.
 - **Profundidad de campo:** el desenfoque es por distancia en pantalla, sin bokeh.
 - **Ruido de los god rays:** hay un grano fino con pocos pasos. Con acumulación temporal (Fase 7.3, TAA) desaparecería.
 - **Luz de la ballena:** la luz bajo el agua usa el nivel medio del mar, no la altura de la ola encima de cada punto.

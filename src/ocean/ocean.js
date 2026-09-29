@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import {
-  Fn, If, Loop, abs, attribute, cameraFar, cameraNear, cameraPosition, clamp, cos, dot, exp, float, floor, frontFacing, length, log2, max,
+  Fn, If, Loop, abs, attribute, cameraFar, cameraNear, cameraPosition, clamp, cos, dot, exp, float, floor, frontFacing, length, log2, max, min,
   mix, normalize, perspectiveDepthToViewZ, pmremTexture, positionView, pow, reflect, refract, screenUV, select, sin, smoothstep,
   sqrt, texture, uniform, uniformArray, varyingProperty, vec2, vec3, viewportDepthTexture, viewportSharedTexture,
 } from 'three/tsl';
@@ -129,6 +129,8 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     refraction: uniform(1),
     sunRefr: uniform(new THREE.Vector3(0, 1, 0)), // hacia el sol, ya refractada dentro del agua
     caustics: uniform(1),
+    causticEps: uniform(0.12), // cuanto menor, líneas más finas y brillantes
+    surfaceCaustics: uniform(1),
   };
   const L = CASCADE_LENGTHS;
   const halfTexel = 0.5 / FFT_SIZE;
@@ -139,6 +141,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
 
   const dispTex = fft.disp.map((t) => texture(t));
   const derivTex = fft.deriv.map((t) => texture(t));
+  const hessTex = fft.hess.map((t) => texture(t));
   // entorno: dos nodos PMREM (reflejo y horizonte) cuyo `value` se cambia cuando el cielo lo regenera;
   // hasta entonces, un PMREM vacío
   const emptyEnv = new THREE.PMREMGenerator(renderer).fromScene(new THREE.Scene()).texture;
@@ -298,7 +301,13 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
       const shadowU = clouds.cloudShadowNode(pos);
       const lightU = vec3(u.sunRadiance).mul(clamp(u.sunDir.y.mul(4), 0, 1).mul(0.35).mul(shadowU)).add(vec3(u.ambient));
       const inner = vec3(u.scatter).mul(lightU).mul(0.6);
-      result.assign(through.mul(float(1).sub(Fw)).add(inner.mul(Fw)));
+      // cuando hay sol: destellos del sol visto a través de las olas y la red de cáusticas que se forma
+      // justo bajo la superficie (lo que se ve "brillar" mirando hacia arriba)
+      const sunOn = clamp(u.sunDir.y.mul(4), 0, 1).mul(shadowU).mul(u.surfaceCaustics);
+      const glint = pow(clamp(dot(Rt, normalize(u.sunDir)), 0, 1), 900).mul(select(tir, float(0), float(1)));
+      const web = causticAt(xz, float(1.2), false).sub(1).max(0.0);
+      const shine = vec3(u.sunRadiance).mul(glint.mul(6).mul(float(1).sub(Fw)).add(web.mul(0.15))).mul(sunOn);
+      result.assign(through.mul(float(1).sub(Fw)).add(inner.mul(Fw)).add(shine));
     });
     return result;
   })();
@@ -321,22 +330,36 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
    * medianas en el punto de la superficie por donde entra el sol (J < 1: la ola enfoca la luz); se
    * difuminan con la profundidad (mip) y el oleaje pequeño se apaga en unos 12 m.
    */
-  const causticNode = (p, sharp = false) => {
+  /**
+   * Cáusticas "de verdad" a una profundidad D bajo el punto de la superficie xzS: cada ola es una
+   * lente; el haz que entra por un trozo de superficie llega a D·κ·H más lejos (κ = 1 − 1/n,
+   * H = hessiano de la altura) y la intensidad es el cociente de áreas 1/|det(I + D·κ·H)|. Las
+   * líneas brillantes son los pliegues donde el determinante pasa por 0 (la red de las piscinas).
+   * `soft` (god rays) usa un mip más grueso y un ε mayor: haces sin centelleo.
+   */
+  const causticAt = (xzS, D, soft) => {
+    const Deff = D.div(max(u.sunRefr.y, 0.3)).mul(0.25);
+    const lod = log2(D.mul(soft ? 0.25 : 0.04).add(1));
+    const h1 = hessTex[1].sample(xzS.div(L[1]).add(halfTexel)).level(lod);
+    const h2 = hessTex[2].sample(xzS.div(L[2]).add(halfTexel)).level(lod.add(soft ? 1 : 0));
+    // el oleaje pequeño deja de enfocar con la profundidad (se promedia): se apaga hacia los 15 m
+    const H = h1.xyz.add(h2.xyz.mul(exp(D.div(-15))));
+    const a = float(1).add(Deff.mul(H.x)), b = float(1).add(Deff.mul(H.y)), c = Deff.mul(H.z);
+    const det = a.mul(b).sub(c.mul(c));
+    const I = min(float(1).div(max(abs(det), soft ? u.causticEps.mul(3) : u.causticEps)), 8);
+    // muy hondo el patrón se deshace: vuelve a luz uniforme
+    return mix(I, float(1), smoothstep(12.0, 35.0, D));
+  };
+  const causticNode = (p, soft = false) => {
     const D = max(u.level.sub(p.y), 0.0);
     const up = u.sunRefr;
     const xzS = p.xz.add(up.xz.mul(D.div(max(up.y, 0.25))));
-    // los haces de luz (sharp) se ven más definidos que las cáusticas sobre los objetos
-    const lod = log2(D.mul(sharp ? 0.08 : 0.3).add(1));
-    const J1 = derivTex[1].sample(xzS.div(L[1]).add(halfTexel)).level(lod).z;
-    const J2 = derivTex[2].sample(xzS.div(L[2]).add(halfTexel)).level(lod.add(1)).z;
-    const w1 = D.div(D.add(3)), w2 = D.div(D.add(0.7)).mul(exp(D.div(-12)));
-    const c = clamp(float(1).add(float(1).sub(J1).mul(w1).mul(4)).add(float(1).sub(J2).mul(w2).mul(3)), 0.1, 4);
-    return mix(float(1), c.mul(c), u.caustics).mul(clouds.cloudShadowNode(vec3(xzS.x, u.level, xzS.y)));
+    return mix(float(1), causticAt(xzS, D, soft), u.caustics).mul(clouds.cloudShadowNode(vec3(xzS.x, u.level, xzS.y)));
   };
   const underLightNode = (p) => {
     const D = max(u.level.sub(p.y), 0.0);
     const T = exp(vec3(u.absorb).negate().mul(D.div(max(u.sunRefr.y, 0.3))));
-    const sunFrac = clamp(u.sunDir.y.mul(4), 0, 1).mul(0.6);
+    const sunFrac = clamp(u.sunDir.y.mul(4), 0, 1).mul(0.75); // con sol, la mayor parte de la luz es directa
     const lit = T.mul(mix(float(1), causticNode(p), sunFrac));
     return select(p.y.lessThan(u.level), lit, vec3(1));
   };

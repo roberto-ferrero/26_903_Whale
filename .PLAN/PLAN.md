@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.24 · 28/09/2026
+Versión 0.25 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -222,7 +222,8 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 - [x] **Fase 6.4 God rays.** Raymarching volumétrico usando la superficie animada como máscara de sombra (versión *screen-space* como opción de bajo coste).
   - Hecho: 16 pasos (de 2 a 48) que leen las cáusticas de la superficie a lo largo del sol refractado; la versión barata es bajar los pasos.
 - [x] **Fase 6.5 Cáusticas.** Proyectadas sobre la ballena y sobre las partículas.
-  - Hecho: `ocean.causticNode` / `underLightNode` (jacobiano de las cascadas medianas, difuminado con la profundidad) aplicados a la ballena (`outputNode`), las salpicaduras, las burbujas y la nieve marina.
+  - Hecho: `ocean.causticNode` / `underLightNode` aplicados a la ballena (`outputNode`), las salpicaduras, las burbujas y la nieve marina.
+  - Revisión del 29/09/2026: cáusticas con el hessiano de la superficie (1/|det(I + D·κ·H)|), que forman una red de líneas nítidas. También destellos y cáusticas en la cara inferior de la superficie, y god rays de 0 a 8 (5 por defecto). Solo con sol y sin sombra de nubes.
 - [x] **Fase 6.6 Burbujas.** Nubes de burbujas en la entrada y salida de la ballena, estela de burbujas y burbujas que suben y estallan en superficie.
   - Hecho: partícula burbuja con velocidad terminal, bamboleo y estallido. Nubes en `impact` y `surface_exit`, huella al entrar y estela de aire atrapado.
 - [x] **Fase 6.7 Partículas en suspensión.** Nieve marina y plancton flotando con corrientes, iluminados por los god rays.
