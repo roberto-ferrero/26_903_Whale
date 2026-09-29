@@ -18,13 +18,14 @@ import {
 export const FISH_DEFAULTS = {
   enabled: true,
   schoolCount: 500,
-  schoolSize: 0.18, // m (longitud de cada pez)
+  schoolSize: 0.22, // m (longitud de cada pez)
   schoolSpeed: 1.4, // m/s de crucero
   separation: 1.5,
   alignment: 1,
   cohesion: 1,
   flee: 1,
-  schoolDepth: 7, // m bajo la superficie (centro del cardumen)
+  schoolDepth: 4, // m: profundidad mínima del centro del cardumen
+  schoolDistance: 10, // m: distancia delante de la cámara
   loners: 0, // peces sueltos: desactivados de momento (29/09/2026)
   lonerSize: 0.7,
 };
@@ -110,7 +111,19 @@ export function createFish({ scene, ocean, water, camera }) {
 
   // centro del cardumen: gira despacio alrededor de la zona de la ballena
   const home = new THREE.Vector3();
+  // corriente que arrastra al cardumen con el centro (la cámara acompaña a la ballena a 3-5 m/s,
+  // más que lo que nadan los peces): nadan relativos a ese marco y así no se quedan atrás
+  const prevHome = new THREE.Vector3(), drift = new THREE.Vector3(), ZERO = new THREE.Vector3();
   let homeAngle = 0;
+  const whaleSmooth = new THREE.Vector3();
+  const camFwd = new THREE.Vector3(), centerV = new THREE.Vector3();
+  const schoolCenter = () => {
+    const n = Math.min(state.schoolCount, MAX_SCHOOL) || 1;
+    centerV.set(0, 0, 0);
+    for (let i = 0; i < n; i += 8) centerV.x += school.pos[i * 3], centerV.y += school.pos[i * 3 + 1], centerV.z += school.pos[i * 3 + 2];
+    return centerV.multiplyScalar(8 / n);
+  };
+  let whaleInit = false;
   const whalePts = [];
   const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpS = new THREE.Vector3(), tmpP = new THREE.Vector3();
   const fwd = new THREE.Vector3(0, 0, 1), dir = new THREE.Vector3(), sideV = new THREE.Vector3();
@@ -178,7 +191,7 @@ export function createFish({ scene, ocean, water, camera }) {
       // hacia el centro del cardumen (más fuerte cuanto más lejos)
       const hx = home.x - px, hy = home.y - py, hz = home.z - pz;
       const hd = Math.sqrt(hx * hx + hy * hy + hz * hz) + 1e-3;
-      const pull = Math.min(hd / 12, 2) * 0.6;
+      const pull = Math.min(hd / 5, 4) * 1.2; // más fuerte que antes: si no, se quedaba atrás
       fx += hx / hd * pull; fy += hy / hd * pull; fz += hz / hd * pull;
       // bandas de profundidad: ni en la superficie ni demasiado hondo
       if (py > level - 1.2) fy -= (py - (level - 1.2)) * 4;
@@ -198,10 +211,12 @@ export function createFish({ scene, ocean, water, camera }) {
       let vx = vel[i * 3] + fx * dt, vy = vel[i * 3 + 1] + fy * dt, vz = vel[i * 3 + 2] + fz * dt;
       vy *= 0.97; // nadan más en horizontal
       const sp = Math.sqrt(vx * vx + vy * vy + vz * vz) + 1e-5;
-      const target = Math.min(Math.max(sp, vmin), vmax);
+      // lejos del centro nadan más deprisa para alcanzarlo (hasta ×2)
+      const boost = 1 + Math.min(Math.max((hd - 5) / 6, 0), 2); // hasta ×3
+      const target = Math.min(Math.max(sp, vmin), vmax * boost);
       vx *= target / sp; vy *= target / sp; vz *= target / sp;
       vel[i * 3] = vx; vel[i * 3 + 1] = vy; vel[i * 3 + 2] = vz;
-      pos[i * 3] = px + vx * dt; pos[i * 3 + 1] = py + vy * dt; pos[i * 3 + 2] = pz + vz * dt;
+      pos[i * 3] = px + vx * dt + drift.x; pos[i * 3 + 1] = py + vy * dt + drift.y; pos[i * 3 + 2] = pz + vz * dt + drift.z;
     }
     return n;
   }
@@ -239,7 +254,9 @@ export function createFish({ scene, ocean, water, camera }) {
   function writeInstances(g, n, size, wagScale, dt) {
     for (let i = 0; i < n; i++) {
       tmpP.set(g.pos[i * 3], g.pos[i * 3 + 1], g.pos[i * 3 + 2]);
-      dir.set(g.vel[i * 3], g.vel[i * 3 + 1], g.vel[i * 3 + 2]);
+      // orientación y coletazo según la velocidad en el mundo (la propia más el arrastre)
+      const dr = g === school ? drift : ZERO, idt = dt > 0 ? 1 / dt : 0;
+      dir.set(g.vel[i * 3] + dr.x * idt, g.vel[i * 3 + 1] + dr.y * idt, g.vel[i * 3 + 2] + dr.z * idt);
       const sp = dir.length();
       if (sp > 1e-4) tmpQ.setFromUnitVectors(fwd, dir.multiplyScalar(1 / sp));
       const s = size * (0.85 + ((i * 7919) % 100) / 330); // tamaños algo distintos
@@ -249,7 +266,7 @@ export function createFish({ scene, ocean, water, camera }) {
       // coletazo: más rápido cuanto más rápido nada (en longitudes de cuerpo por segundo)
       g.params.setY(i, Math.min(1.2 + (sp / size) * 0.35, 9) * wagScale);
       g.params.setZ(i, 0.09);
-      g.motion.setXYZ(i, g.vel[i * 3] * dt, g.vel[i * 3 + 1] * dt, g.vel[i * 3 + 2] * dt);
+      g.motion.setXYZ(i, g.vel[i * 3] * dt + dr.x, g.vel[i * 3 + 1] * dt + dr.y, g.vel[i * 3 + 2] * dt + dr.z);
       sideV.set(tmpS.x, 0, 0).applyQuaternion(tmpQ);
       g.side.setXYZ(i, sideV.x, sideV.y, sideV.z);
     }
@@ -275,8 +292,29 @@ export function createFish({ scene, ocean, water, camera }) {
       dt = Math.min(dt, 0.05);
       time.value += dt;
       // centro del cardumen: órbita lenta de 25 m de radio alrededor del origen de la ballena
-      homeAngle += dt * 0.03;
-      home.set(Math.cos(homeAngle) * 25, level - state.schoolDepth, Math.sin(homeAngle) * 25 - 10);
+      // centro del cardumen: acompaña a la ballena a ~12 m, girando despacio a su alrededor (así suele
+      // estar en cuadro con la cámara de seguimiento); se suaviza para que un salto no lo arrastre
+      const wp = water.probes[4]?.pos;
+      if (wp) {
+        if (!whaleInit) { whaleSmooth.copy(wp); whaleInit = true; }
+        whaleSmooth.lerp(wp, 1 - Math.exp(-dt / 3));
+      }
+      // delante de la cámara (a `schoolDistance` m, un poco a un lado y oscilando) para que se vea:
+      // bajo el agua la visibilidad es de ~15 m y, acompañando a la ballena, quedaba a 20-30 m
+      homeAngle += dt * 0.12;
+      // sobre el eje de visión (con su inclinación), desplazado a un lado en horizontal
+      camera.getWorldDirection(camFwd);
+      const hx = camFwd.x, hz = camFwd.z, hl = Math.hypot(hx, hz) || 1;
+      const sideOff = 3 * Math.sin(homeAngle);
+      const target = tmpP.set(
+        camera.position.x + camFwd.x * state.schoolDistance - (hz / hl) * sideOff,
+        Math.min(Math.max(camera.position.y + camFwd.y * state.schoolDistance, level - 25), level - state.schoolDepth),
+        camera.position.z + camFwd.z * state.schoolDistance + (hx / hl) * sideOff,
+      );
+      if (!spawned) home.copy(target); // aparece directamente delante de la cámara
+      else home.lerp(target, 1 - Math.exp(-dt / 1.2));
+      // tras un corte de plano el cardumen puede quedar muy lejos: reaparece cerca del nuevo centro
+      if (spawned && schoolCenter().distanceTo(target) > 18) { home.copy(target); spawned = false; }
       if (!spawned) {
         spawn(school, MAX_SCHOOL, home, 8, state.schoolSpeed);
         spawn(loners, MAX_LONERS, home, 30, 0.8);
@@ -286,6 +324,9 @@ export function createFish({ scene, ocean, water, camera }) {
       // puntos del cuerpo de la ballena (sondas de la Fase 5)
       whalePts.length = 0;
       for (const p of water.probes) if (p.role === 'body' || p.role === 'head' || p.role === 'tail') whalePts.push({ x: p.pos.x, y: p.pos.y, z: p.pos.z, r: p.r });
+      drift.subVectors(home, prevHome);
+      if (drift.lengthSq() > 4) drift.set(0, 0, 0); // corte de plano o reaparición
+      prevHome.copy(home);
       const n = updateSchool(dt, level);
       const m = updateLoners(dt, level);
       writeInstances(school, n, state.schoolSize, 1, dt);

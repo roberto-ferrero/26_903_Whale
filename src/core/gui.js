@@ -283,7 +283,8 @@ export function createGui(m) {
   fFish.add(fs, 'schoolCount', 0, 1200, 10).name('Peces en el cardumen');
   fFish.add(fs, 'schoolSize', 0.08, 0.5, 0.01).name('Tamaño (m)');
   fFish.add(fs, 'schoolSpeed', 0.3, 4, 0.05).name('Velocidad (m/s)');
-  fFish.add(fs, 'schoolDepth', 2, 25, 0.5).name('Profundidad (m)');
+  fFish.add(fs, 'schoolDepth', 2, 25, 0.5).name('Profundidad mínima (m)');
+  fFish.add(fs, 'schoolDistance', 4, 30, 0.5).name('Distancia a la cámara (m)');
   fFish.add(fs, 'separation', 0, 4, 0.05).name('Separación');
   fFish.add(fs, 'alignment', 0, 4, 0.05).name('Alineación');
   fFish.add(fs, 'cohesion', 0, 4, 0.05).name('Cohesión');

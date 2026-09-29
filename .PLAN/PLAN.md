@@ -278,6 +278,7 @@ Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
   - Peces procedurales con coletazo en el vertex shader y luz con cáusticas bajo el agua.
   - Cardumen de 500 peces con boids (10 vecinos por pez, huida de la ballena): se organiza en ~10 s con polarización 0,96–0,99 y cuesta 0,54 ms de CPU.
   - Peces sueltos: desactivados de momento, a petición de Roberto.
+  - Visibilidad: el cardumen va delante de la cámara (10 m), arrastrado por una corriente, para que se vea con la cámara de seguimiento.
   - Corregidas las estelas del TAA (los peces no escribían su velocidad real).
   - Funciona también en WebGL2.
   - Detalle: [docs/peces.md](docs/peces.md).

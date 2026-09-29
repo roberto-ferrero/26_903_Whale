@@ -15,6 +15,18 @@
 - **Peces sueltos:** desactivados (el código se conserva, fuera de la GUI y de los presets).
 - **Selector WebGPU / WebGL2:** retirado de la GUI. El fallback automático sin WebGPU (y `?webgl` en la URL) se mantiene.
 
+## Visibilidad (29/09/2026, petición de Roberto: «apenas veo el cardumen»)
+
+![](img/peces/cardumen_seguimiento.jpg)
+
+- **Problema:** el cardumen daba vueltas alrededor de la zona de la ballena. La cámara de seguimiento va a ~24 m de la ballena y bajo el agua se ve a unos 15 m, así que casi siempre quedaba fuera del cuadro o perdido en la niebla. Además, la ballena y la cámara van a 3-5 m/s, más deprisa que los peces, y el cardumen se quedaba atrás.
+- **Ahora:**
+  - **Centro del cardumen delante de la cámara:** sobre el eje de visión, a *Distancia a la cámara* (10 m por defecto), algo desplazado a un lado y oscilando despacio. Se limita por arriba con *Profundidad mínima* (4 m) y por abajo a 25 m.
+  - **Corriente de arrastre:** el cardumen se mueve con su centro y los peces nadan con los boids dentro de ese marco. Se orientan y dan coletazos según su velocidad real en el mundo (la propia más el arrastre), y el motion blur recibe ese mismo desplazamiento.
+  - Cuando se alejan del centro, nadan hasta 3 veces más deprisa. Tras un corte de plano, si el cardumen queda a más de 18 m, reaparece delante de la cámara.
+  - Tamaño por defecto: 0,22 m.
+- **Comprobado con la cámara de seguimiento durante la secuencia:** a 10-13 m de la cámara, dentro del cuadro de nado a preparación, con polarización 0,9-0,99 y radio de 1-1,5 m. En el salto la cámara sube y el cardumen se queda debajo (límite de profundidad).
+
 ## Selector de renderizador (retirado)
 
 - **Dónde:** carpeta *Calidad* → «Renderizador (recarga)»: **WebGPU / WebGL2**.
@@ -37,7 +49,7 @@
   - vecinos por rejilla espacial (celdas de 1,2 m).
 - **Vecinos limitados (interacción topológica):** cada pez atiende solo a sus **10 primeros vecinos**, como los peces reales, que se guían por unos 7. Sin este límite, con el cardumen apretado el coste era O(n²): 7,5 ms con 500 peces.
 - **Fuerzas añadidas:**
-  - atracción a un centro que da una vuelta lenta de 25 m de radio alrededor de la zona de la ballena;
+  - atracción al centro del cardumen (desde el 29/09, delante de la cámara: ver *Visibilidad*);
   - franja de profundidad: al menos 1,2 m bajo la superficie y no más de 25 m;
   - huida de la ballena (sondas del cuerpo de la Fase 5, radio del cuerpo + 6 m) y, un poco, de la cámara.
 - **Velocidad** entre 0,5 y 1,8 veces la de crucero; nadan sobre todo en horizontal.
@@ -53,9 +65,9 @@
 
 ### Parámetros (carpeta *Peces*, módulo `peces` en presets y URL)
 
-Peces, peces en el cardumen (0-1200, 500), tamaño (0,18 m), velocidad (1,4 m/s), profundidad (7 m), separación, alineación, cohesión, huida de la ballena, peces sueltos y su tamaño.
+Peces, peces en el cardumen (0-1200, 500), tamaño (0,22 m), velocidad (1,4 m/s), profundidad mínima (4 m), distancia a la cámara (10 m), separación, alineación, cohesión y huida de la ballena.
 
 ## Límites
 
-- **Cardumen:** es uno solo, siempre alrededor de la zona de la ballena. No hay depredación ni formación de «bait ball» ante un ataque.
+- **Cardumen:** es uno solo y acompaña a la cámara (es un recurso de encuadre, no un banco que se quede en un sitio). No hay depredación ni formación de «bait ball» ante un ataque.
 - **Geometría:** es sencilla, pensada para verse a distancia. De cerca se nota que es un pez genérico.
