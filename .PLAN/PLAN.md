@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.26 · 29/09/2026
+Versión 0.27 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -250,16 +250,24 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 8: Rendimiento y entrega
+## [~] Fase 8: Rendimiento y entrega
 
-- [ ] **Fase 8.1** Presupuesto de rendimiento (objetivo: 60 fps en GPU de escritorio de gama media) y perfiles de calidad Bajo / Medio / Alto / Ultra.
-- [ ] **Fase 8.2** Perfilado y optimización: resoluciones de nubes y god rays, cascadas FFT, número de partículas y LOD de la ballena.
-- [ ] **Fase 8.3** Build de producción, despliegue (GitHub Pages, Netlify o Vercel) y documentación de parámetros.
-- [ ] **Fase 8.4 (opcional)** Captura a vídeo en alta calidad a cámara lenta.
-- [ ] **Fase 8.5 Fallback WebGL2.**
+- [x] **Fase 8.1** Presupuesto de rendimiento (objetivo: 60 fps en GPU de escritorio de gama media) y perfiles de calidad Bajo / Medio / Alto / Ultra.
+  - Hecho: `core/quality.js` con Bajo, Medio, Alto (por defecto), Ultra y Automático (baja o sube según el tiempo de fotograma, con histéresis).
+- [x] **Fase 8.2** Perfilado y optimización: resoluciones de nubes y god rays, cascadas FFT, número de partículas y LOD de la ballena.
+  - Hecho: a 1080p, Alto va a 10,9 ms sobre el agua y 15,1 ms bajo el agua (cumple los 60 fps). Desglose por módulo (océano ~4 ms, posprocesado ~2,9, nubes ~2). Ultra bajo el agua reajustado (20 pasos de god rays).
+- [~] **Fase 8.3** Build de producción, despliegue (GitHub Pages, Netlify o Vercel) y documentación de parámetros.
+  - Hecho: build con `base: './'` probado con `vite preview`, `README.md` y `docs/parametros.md` (254 controles, generado desde la GUI).
+  - Pendiente: el despliegue. El build incluye el modelo de CGTrader: hay que decidir el destino y confirmar la licencia antes de publicarlo.
+- [x] **Fase 8.4 (opcional)** Captura a vídeo en alta calidad a cámara lenta.
+  - Hecho: `core/recorder.js`, WebM VP9 de hasta 120 Mbit/s con un fotograma de vídeo por render. La cámara lenta sale de la velocidad del tiempo; el modo offline con WebCodecs queda como mejora.
+- [x] **Fase 8.5 Fallback WebGL2.**
   - Detectar si hay WebGPU; si no, usar el backend WebGL2 de `WebGPURenderer` (`forceWebGL`) o avisar al usuario.
   - Revisar qué efectos basados en *compute* (FFT, partículas, nubes) necesitan una alternativa, una versión simplificada o desactivarse.
   - Perfil de calidad reducido y pruebas en navegadores sin WebGPU.
+  - Hecho: `forceWebGL` sin `navigator.gpu` (o con `?webgl`). Sin compute: olas de Gerstner, sin salpicaduras ni ondas de la ballena; perfil Bajo y aviso. Probado con `?webgl` sin errores.
+
+Detalle: [docs/fase_8_entrega.md](docs/fase_8_entrega.md).
 
 ---
 

@@ -16,8 +16,10 @@ export const TONE_MAPPINGS = {
  * Unidades en metros; eje Y arriba; la ballena mira hacia +Z.
  */
 export async function createViewer(container) {
-  // en desarrollo se miden los tiempos de GPU (timestamp queries) para el panel de depuración
-  const renderer = new THREE.WebGPURenderer({ antialias: true, trackTimestamp: import.meta.env.DEV });
+  // WebGPU si el navegador lo tiene; si no (o con ?webgl en la URL), el backend WebGL2 del mismo
+  // renderer (Fase 8.5). En desarrollo se miden los tiempos de GPU para el panel de depuración.
+  const forceWebGL = !navigator.gpu || new URLSearchParams(location.search).has('webgl');
+  const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL, trackTimestamp: import.meta.env.DEV && !forceWebGL });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.AgXToneMapping;
@@ -79,5 +81,7 @@ export async function createViewer(container) {
 
   const backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL2 (fallback)';
 
-  return { renderer, labelRenderer, scene, camera, controls, sun, sunParams, updateSun, hemi, backend, ensureSize };
+  // compute shaders (FFT del océano, partículas, ondas): solo con WebGPU
+  const compute = renderer.backend.isWebGPUBackend === true;
+  return { renderer, labelRenderer, scene, camera, controls, sun, sunParams, updateSun, hemi, backend, compute, ensureSize };
 }

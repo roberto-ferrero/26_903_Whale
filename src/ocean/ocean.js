@@ -55,7 +55,10 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
 
   // ------------------------------------------------------------------ espectro y FFT
   let spec = buildSpectrum(state);
-  const fft = createFFTOcean(renderer, spec);
+  // sin compute (WebGL2, Fase 8.5): no hay FFT; el océano usa Gerstner y texturas vacías
+  const compute = renderer.backend.isWebGPUBackend === true;
+  const fft = compute ? createFFTOcean(renderer, spec) : null;
+  if (!fft) state.mode = 'Gerstner';
   let cpu = createCpuField(spec);
   let gerstner = buildGerstnerWaves(state);
   let specKey = '';
@@ -140,9 +143,14 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
   const vWorld0 = varyingProperty('vec2', 'vOceanWorld0');
   const vPos = varyingProperty('vec3', 'vOceanPos');
 
-  const dispTex = fft.disp.map((t) => texture(t));
-  const derivTex = fft.deriv.map((t) => texture(t));
-  const hessTex = fft.hess.map((t) => texture(t));
+  const empty = () => {
+    const t = new THREE.DataTexture(new Float32Array([0, 0, 1, 0]), 1, 1, THREE.RGBAFormat, THREE.FloatType);
+    t.needsUpdate = true;
+    return [t, t, t];
+  };
+  const dispTex = (fft ? fft.disp : empty()).map((t) => texture(t));
+  const derivTex = (fft ? fft.deriv : empty()).map((t) => texture(t));
+  const hessTex = (fft ? fft.hess : empty()).map((t) => texture(t));
   // entorno: dos nodos PMREM (reflejo y horizonte) cuyo `value` se cambia cuando el cielo lo regenera;
   // hasta entonces, un PMREM vacío
   const emptyEnv = new THREE.PMREMGenerator(renderer).fromScene(new THREE.Scene()).texture;
@@ -414,14 +422,15 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     u.refl.value = state.reflections;
     u.foam.value = state.foam;
     u.foamJ.value = state.foamJacobian;
-    fft.uniforms.foamJ.value = state.foamJacobian;
+    if (fft) fft.uniforms.foamJ.value = state.foamJacobian;
+    if (!fft) state.mode = 'Gerstner';
     u.haze.value = state.haze;
     u.refraction.value = state.refraction ? 1 : 0;
     const key = specKeys.map((k2) => state[k2]).join('|');
     if (key !== specKey) {
       specKey = key;
       spec = buildSpectrum(state);
-      fft.setSpectrum(spec);
+      fft?.setSpectrum(spec);
       cpu = createCpuField(spec);
       cpuTime = -1;
     }
@@ -458,7 +467,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
   return {
     state,
     apply,
-    modes: OCEAN_MODES,
+    modes: fft ? OCEAN_MODES : ['Gerstner'],
     heightAt,
     surfaceHeightNode,
     causticNode,
@@ -477,7 +486,7 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
       vpReady = true;
       u.time.value = time;
       if (!state.enabled) return;
-      if (state.mode === 'FFT') fft.update(time, dt, state.choppiness, state.foamDecay);
+      if (fft && state.mode === 'FFT') fft.update(time, dt, state.choppiness, state.foamDecay);
       if (scene.environment && envRefl.value !== scene.environment) envRefl.value = envHorizon.value = scene.environment;
       u.envIntensity.value = scene.environmentIntensity ?? 1;
       u.sunDir.value.copy(light.dir);

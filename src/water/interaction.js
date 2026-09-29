@@ -36,7 +36,15 @@ export function createInteraction({ renderer, scene, whale, ocean, ripples, fsm 
     info: '',
   };
 
-  const splash = createSplash(renderer, scene, { surfaceHeight: ocean.surfaceHeightNode, lightNode: ocean.underLightNode });
+  // sin compute (WebGL2, Fase 8.5): ni partículas ni ondas; el resto (sondas, piel mojada) sigue
+  const compute = renderer.backend.isWebGPUBackend === true;
+  const splash = compute
+    ? createSplash(renderer, scene, { surfaceHeight: ocean.surfaceHeightNode, lightNode: ocean.underLightNode })
+    : {
+      emit() {}, update() {}, set visible(v) {}, stats: { spawned: 0 },
+      uniforms: { wind: { value: new THREE.Vector3() }, sizeScale: { value: 1 }, brightness: { value: 1 } },
+    };
+  if (!ripples) ripples = { uniforms: { c: { value: 0 }, foamTau: { value: 0 } }, addSource() {}, update() {} };
 
   // ------------------------------------------------------------------ sondas
   const bones = new Map();

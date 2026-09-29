@@ -24,6 +24,8 @@ import { createSnow } from './underwater/snow.js';
 import { createPost } from './core/post.js';
 import { createSequence } from './core/sequence.js';
 import { createAudio } from './audio/audio.js';
+import { createQuality } from './core/quality.js';
+import { createRecorder } from './core/recorder.js';
 import { output, positionWorld, vec4 } from 'three/tsl';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
@@ -56,7 +58,7 @@ const clock = createSimClock();
 const clouds = await createClouds(viewer.renderer, viewer.scene);
 const sky = createSky(viewer, [clouds.envMesh]);
 const lighting = createLighting(viewer, () => sky.state.enabled);
-const ripples = createRipples(viewer.renderer); // ondas y espuma de la ballena (Fase 5)
+const ripples = viewer.compute ? createRipples(viewer.renderer) : null; // ondas y espuma de la ballena (Fase 5); sin compute no hay
 const ocean = createOcean({
   renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, clouds, sky, getTime: () => clock.state.time, ripples,
 });
@@ -85,6 +87,11 @@ const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, 
   (x, z) => (ocean.state.enabled ? ocean.heightAt(x, z) : helpers.state.waterLevel));
 const sequence = createSequence({ fsm, cameras, helpers, anchor }); // Fase 7.1
 const audio = createAudio({ camera: viewer.camera, fsm, ocean, under }); // Fase 7.4
+const recorder = createRecorder({ canvas: viewer.renderer.domElement }); // Fase 8.4
+let gui = null;
+const quality = createQuality({ // Fase 8.1
+  viewer, clouds, under, post, water, onChange: () => gui?.controllersRecursive().forEach((c) => c.updateDisplay()),
+});
 const debug = createDebug(container, whale, fsm);
 const stats = createStats(container, viewer.backend);
 
@@ -101,6 +108,7 @@ params.add('nubes', clouds.state, applyClouds);
 params.add('oceano', ocean.state, () => ocean.apply(), Object.keys(ocean.state).filter((k) => k !== 'info'));
 params.add('agua', water.state, water.apply, Object.keys(water.state).filter((k) => k !== 'info'));
 params.add('bajoagua', under.state, under.apply, Object.keys(under.state).filter((k) => k !== 'info'));
+params.add('calidad', quality.state, quality.apply, ['profile']);
 params.add('post', post.state, post.apply);
 params.add('audio', audio.state, audio.apply, ['volume', 'ocean', 'effects', 'song']); // sin 'enabled': el navegador exige un clic
 params.add('secuencia', sequence.state, () => {}, ['loop', 'deepTime', 'deepDepth', 'surfaceTime', 'surfaceDepth', 'autoCamera']);
@@ -109,8 +117,19 @@ params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
 params.add('debug', debug.state, debug.apply);
 const presets = loadBuiltinPresets();
-createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
+gui = createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
 applySky();
+if (!viewer.compute) {
+  // Fase 8.5: WebGL2 (sin WebGPU): perfil bajo y aviso de lo que no está disponible
+  quality.state.profile = 'Bajo';
+  quality.apply();
+  const note = document.createElement('div');
+  note.className = 'message webgl-note';
+  note.textContent = 'Este navegador no tiene WebGPU: modo WebGL2 con calidad reducida '
+    + '(olas de Gerstner en lugar de FFT, sin salpicaduras ni ondas de la ballena).';
+  container.appendChild(note);
+  setTimeout(() => note.remove(), 9000);
+}
 params.readURL();
 
 // ------------------------------------------------------------------ teclado
@@ -142,6 +161,7 @@ function frame(realDt) {
   under.update(realDt); // ¿cámara bajo el agua? (Fase 6)
   snow.update(dt, under.underwater, under.state.snow);
   audio.update(realDt);
+  quality.update(realDt);
   lod.update(viewer.camera);
   helpers.update();
   skeleton.update();
@@ -150,6 +170,7 @@ function frame(realDt) {
   if (!viewer.ensureSize()) return false; // ventana oculta: evita texturas de tamaño 0
   clouds.render(viewer.camera); // pase de nubes a resolución reducida (Fase 3.4)
   post.render(); // escena + bajo el agua (Fase 6) + posprocesado global (Fase 7.3)
+  recorder.frame(); // Fase 8.4
   viewer.labelRenderer.render(viewer.scene, viewer.camera);
   const c = clock.state;
   stats.update(
@@ -167,7 +188,8 @@ function frame(realDt) {
 if (import.meta.env.DEV) {
   const renderer = viewer.renderer;
   window.whaleViewer = {
-    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, helpers, skeleton, anchor, cameras, debug, params,
+    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, quality, recorder, helpers,
+    get gui() { return gui; }, skeleton, anchor, cameras, debug, params,
     /** Dibuja n fotogramas a paso fijo aunque la pestaña esté oculta; devuelve el tiempo de GPU del último (ms). */
     async renderFrames(n = 1, realDt = 1 / 30, size = [1280, 720]) {
       if (renderer.domElement.width === 0 || window.innerWidth === 0) {
@@ -182,10 +204,28 @@ if (import.meta.env.DEV) {
         if (!frame(realDt)) {
           clouds.render(viewer.camera);
           post.render();
+          recorder.frame();
         }
         await renderer.resolveTimestampsAsync('render');
       }
       return renderer.info.render.timestamp;
+    },
+    /** Rendimiento: n fotogramas completos a paso fijo; ms por fotograma (tiempo real con la GPU sincronizada). */
+    async benchmark(n = 60, size = [1920, 1080]) {
+      renderer.setSize(size[0], size[1], false);
+      viewer.camera.aspect = size[0] / size[1];
+      viewer.camera.updateProjectionMatrix();
+      const dev = renderer.backend.device;
+      const step = () => {
+        renderer._nodes.nodeFrame.update();
+        if (!frame(1 / 60)) { clouds.render(viewer.camera); post.render(); } // pestaña oculta: se dibuja igual
+      };
+      for (let i = 0; i < 5; i++) step();
+      await dev?.queue.onSubmittedWorkDone();
+      const t0 = performance.now();
+      for (let i = 0; i < n; i++) step();
+      await dev?.queue.onSubmittedWorkDone();
+      return +((performance.now() - t0) / n).toFixed(2);
     },
     /** Guarda una captura JPEG del canvas en .PLAN/docs/img/<nombre>.jpg (servidor de desarrollo). */
     async capture(name, frames = 6) {

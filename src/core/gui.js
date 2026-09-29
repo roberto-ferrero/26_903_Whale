@@ -6,10 +6,16 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, quality, recorder, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
+  // ------------------------------------------------------------------ calidad (Fase 8.1)
+  const fQ = gui.addFolder('Calidad');
+  fQ.add(quality.state, 'profile', quality.levels).name('Perfil').onChange(() => quality.apply());
+  fQ.add(quality.state, 'active').name('Nivel activo').listen().disable();
+  fQ.add(quality.state, 'frameMs').name('Tiempo por fotograma').listen().disable();
+
   // ------------------------------------------------------------------ secuencia (Fase 7.1)
   const fSeq = gui.addFolder('Secuencia');
   const sq = sequence.state;
@@ -27,6 +33,15 @@ export function createGui(m) {
   fSeq.add(sq, 'deepDepth', 6, 40, 1).name('Profundidad (m)');
   fSeq.add(sq, 'surfaceTime', 2, 60, 1).name('Ondas y espuma (s)');
   fSeq.add(sq, 'surfaceDepth', 1, 10, 0.5).name('Nado en superficie (m)');
+
+  // ------------------------------------------------------------------ grabar vídeo (Fase 8.4)
+  const fRec = gui.addFolder('Grabar vídeo');
+  const recActions = { toggle: () => { const on = recorder.toggle(); recCtl.name(on ? '■ Parar y descargar' : '● Grabar (WebM)'); } };
+  const recCtl = fRec.add(recActions, 'toggle').name('● Grabar (WebM)');
+  fRec.add(recorder.state, 'status').name('Estado').listen().disable();
+  fRec.add(recorder.state, 'fps', [30, 60]).name('Fotogramas/s');
+  fRec.add(recorder.state, 'bitrate', 5, 120, 1).name('Calidad (Mbit/s)');
+  fRec.close();
 
   // ------------------------------------------------------------------ audio (Fase 7.4)
   const fAudio = gui.addFolder('Audio');
