@@ -6,10 +6,38 @@ import { CAMERA_MODES, RAILS } from './cameras.js';
  * en `params` (presets y URL); los cambios hechos en el panel se escriben en la URL.
  */
 export function createGui(m) {
-  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
+  const { clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets } = m;
   const gui = new GUI({ title: 'Ballena jorobada' });
 
   // ------------------------------------------------------------------ tiempo (2.1)
+  // ------------------------------------------------------------------ secuencia (Fase 7.1)
+  const fSeq = gui.addFolder('Secuencia');
+  const sq = sequence.state;
+  const seqActions = {
+    toggle: () => { sequence.toggle(); playCtl.name(sq.playing ? '■ Parar (P)' : '▶ Reproducir secuencia (P)'); },
+    jump: () => sequence.jumpNow(),
+  };
+  const playCtl = fSeq.add(seqActions, 'toggle').name('▶ Reproducir secuencia (P)');
+  fSeq.add(seqActions, 'jump').name('Saltar ahora');
+  fSeq.add(sq, 'phase').name('Fase').listen().disable();
+  fSeq.add(sq, 'progress').name('Progreso').listen().disable();
+  fSeq.add(sq, 'loop').name('Repetir');
+  fSeq.add(sq, 'autoCamera').name('Cámaras automáticas');
+  fSeq.add(sq, 'deepTime', 2, 60, 1).name('Nado profundo (s)');
+  fSeq.add(sq, 'deepDepth', 6, 40, 1).name('Profundidad (m)');
+  fSeq.add(sq, 'surfaceTime', 2, 60, 1).name('Ondas y espuma (s)');
+  fSeq.add(sq, 'surfaceDepth', 1, 10, 0.5).name('Nado en superficie (m)');
+
+  // ------------------------------------------------------------------ audio (Fase 7.4)
+  const fAudio = gui.addFolder('Audio');
+  const au = audio.state;
+  const aa = () => audio.apply();
+  fAudio.add(au, 'enabled').name('Sonido (clic para activar)').onChange(aa);
+  fAudio.add(au, 'volume', 0, 1, 0.01).name('Volumen').onChange(aa);
+  fAudio.add(au, 'ocean', 0, 2, 0.05).name('Oleaje');
+  fAudio.add(au, 'effects', 0, 2, 0.05).name('Salto e impacto');
+  fAudio.add(au, 'song', 0, 2, 0.05).name('Canto de ballena (bajo el agua)');
+
   const fTime = gui.addFolder('Tiempo');
   fTime.add(clock.state, 'paused').name('Pausa (espacio)').listen();
   fTime.add(clock.state, 'timeScale', 0, 3, 0.05).name('Velocidad (cámara lenta < 1)');
@@ -207,6 +235,30 @@ export function createGui(m) {
   fWater.add(wa, 'foamLife', 2, 90, 1).name('Duración de la espuma (s)');
   fWater.add(wa, 'dynamicWet').name('Piel mojada automática');
   fWater.add(wa, 'showProbes').name('Ver sondas').onChange(wapply);
+
+  // ------------------------------------------------------------------ posprocesado (Fase 7.3)
+  const fPost = gui.addFolder('Posprocesado');
+  const ps = post.state;
+  const pa = () => post.apply();
+  fPost.add(ps, 'enabled').name('Posprocesado').onChange(pa);
+  fPost.add(ps, 'aa', post.aaModes).name('Antialiasing').onChange(pa);
+  fPost.add(ps, 'bloom').name('Bloom').onChange(pa);
+  fPost.add(ps, 'bloomStrength', 0, 2, 0.01).name('Bloom: intensidad').onChange(pa);
+  fPost.add(ps, 'bloomThreshold', 0, 4, 0.05).name('Bloom: umbral').onChange(pa);
+  fPost.add(ps, 'bloomRadius', 0, 1, 0.01).name('Bloom: radio').onChange(pa);
+  fPost.add(ps, 'dof').name('Profundidad de campo').onChange(pa);
+  fPost.add(ps, 'autoFocus').name('Enfoque en la ballena').onChange(pa);
+  fPost.add(ps, 'focusDistance', 1, 200, 0.5).name('Distancia de enfoque (m)').onChange(pa);
+  fPost.add(ps, 'focalRange', 1, 150, 1).name('Zona enfocada (m)').onChange(pa);
+  fPost.add(ps, 'bokeh', 0, 5, 0.05).name('Bokeh').onChange(pa);
+  fPost.add(ps, 'motionBlur').name('Motion blur').onChange(pa);
+  fPost.add(ps, 'motionBlurAmount', 0, 2, 0.05).name('Motion blur: obturador').onChange(pa);
+  fPost.add(ps, 'exposure', -3, 3, 0.05).name('Exposición (EV)').onChange(pa);
+  fPost.add(ps, 'contrast', 0.5, 1.6, 0.01).name('Contraste').onChange(pa);
+  fPost.add(ps, 'saturation', 0, 2, 0.01).name('Saturación').onChange(pa);
+  fPost.add(ps, 'temperature', -1, 1, 0.01).name('Temperatura (frío - cálido)').onChange(pa);
+  fPost.add(ps, 'vignette', 0, 1, 0.01).name('Viñeta').onChange(pa);
+  fPost.add(ps, 'grain', 0, 0.4, 0.005).name('Grano').onChange(pa);
 
   // ------------------------------------------------------------------ bajo el agua (Fase 6)
   const fUnder = gui.addFolder('Bajo el agua');

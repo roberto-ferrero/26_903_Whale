@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import {
   Fn, If, Loop, atan, cameraPosition, cameraViewMatrix, clamp, cos, dot, exp, float, hash, instanceIndex, instancedArray, int,
-  length, max, mix, normalize, pow, select, sin, smoothstep, sqrt, uint, uniform, uniformArray, uv, vec2, vec3, vec4,
+  length, max, mix, mrt, normalize, pow, select, sin, smoothstep, sqrt, uint, uniform, uniformArray, uv, vec2, vec3, vec4,
 } from 'three/tsl';
 
 export const SPLASH_TYPES = { drop: 0, spray: 1, mist: 2, sheet: 3, bubble: 4 };
@@ -132,6 +132,8 @@ export function createSplash(renderer, scene, { count = 131072, surfaceHeight, l
   const alphaType = select(type.lessThan(0.5), float(0.8), select(type.lessThan(1.5), float(0.3), select(isMist, float(0.035), select(isBubble, float(0.7), float(0.4)))));
   material.opacityNode = select(isMist, soft, select(isBubble, ring, round)).mul(alphaType).mul(fadeIn.mul(fadeOut)).mul(u.opacity)
     .mul(clamp(dist.div(2), 0, 1)); // no tapar la cámara
+  // sin velocidad propia (la posición sale del búfer): fuera del motion blur y del TAA
+  material.mrtNode = mrt({ velocity: vec4(0) });
   const sprites = new THREE.Sprite(material);
   sprites.count = N;
   sprites.frustumCulled = false;

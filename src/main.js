@@ -21,6 +21,9 @@ import { createRipples } from './water/ripples.js';
 import { createInteraction } from './water/interaction.js';
 import { createUnderwater } from './underwater/underwater.js';
 import { createSnow } from './underwater/snow.js';
+import { createPost } from './core/post.js';
+import { createSequence } from './core/sequence.js';
+import { createAudio } from './audio/audio.js';
 import { output, positionWorld, vec4 } from 'three/tsl';
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/whale.glb`;
@@ -70,10 +73,18 @@ const skeleton = createSkeletonHelpers(viewer.scene, whale);
 const water = createInteraction({ renderer: viewer.renderer, scene: viewer.scene, whale, ocean, ripples, fsm });
 const under = createUnderwater({ renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, ocean }); // Fase 6
 const snow = createSnow({ scene: viewer.scene, ocean });
+// posprocesado global (Fase 7.3): enfoque automático en el centro de la ballena
+const post = createPost({
+  renderer: viewer.renderer, scene: viewer.scene, camera: viewer.camera, under, getFocusTarget: (out) => fsm.getPose(out),
+  consumeCut: () => cameras.consumeCut(),
+});
 // bajo el agua, la ballena recibe la luz que llega a esa profundidad, con cáusticas (Fase 6.5)
 for (const m of Object.values(whale.materials)) m.outputNode = output.mul(vec4(ocean.underLightNode(positionWorld), 1));
 const anchor = createAnchor(viewer.scene, whale, helpers.state);
-const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, () => fsm.state.current);
+const cameras = createCameras(viewer, (out) => fsm.getPose(out), helpers.state, () => fsm.state.current,
+  (x, z) => (ocean.state.enabled ? ocean.heightAt(x, z) : helpers.state.waterLevel));
+const sequence = createSequence({ fsm, cameras, helpers, anchor }); // Fase 7.1
+const audio = createAudio({ camera: viewer.camera, fsm, ocean, under }); // Fase 7.4
 const debug = createDebug(container, whale, fsm);
 const stats = createStats(container, viewer.backend);
 
@@ -90,12 +101,15 @@ params.add('nubes', clouds.state, applyClouds);
 params.add('oceano', ocean.state, () => ocean.apply(), Object.keys(ocean.state).filter((k) => k !== 'info'));
 params.add('agua', water.state, water.apply, Object.keys(water.state).filter((k) => k !== 'info'));
 params.add('bajoagua', under.state, under.apply, Object.keys(under.state).filter((k) => k !== 'info'));
+params.add('post', post.state, post.apply);
+params.add('audio', audio.state, audio.apply, ['volume', 'ocean', 'effects', 'song']); // sin 'enabled': el navegador exige un clic
+params.add('secuencia', sequence.state, () => {}, ['loop', 'deepTime', 'deepDepth', 'surfaceTime', 'surfaceDepth', 'autoCamera']);
 params.add('modelo', look.state, look.apply);
 params.add('lod', lod.state, () => {}, ['mode', 'dist1', 'dist2']);
 params.add('ayudas', helpers.state, helpers.apply);
 params.add('debug', debug.state, debug.apply);
 const presets = loadBuiltinPresets();
-createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
+createGui({ clock, fsm, anim, lod, look, cameras, lighting, sky, clouds, ocean, water, under, post, sequence, audio, applySky, applyClouds, helpers, skeleton, anchor, debug, stats, params, presets });
 applySky();
 params.readURL();
 
@@ -105,6 +119,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { clock.togglePause(); e.preventDefault(); }
   else if (e.key === '.') clock.step();
   else if (e.key.toLowerCase() === 'j') fsm.jump();
+  else if (e.key.toLowerCase() === 'p') sequence.toggle();
   else if (e.key.toLowerCase() === 'c') {
     cameras.state.mode = CAMERA_MODES[(CAMERA_MODES.indexOf(cameras.state.mode) + 1) % CAMERA_MODES.length];
     cameras.apply();
@@ -115,6 +130,7 @@ window.addEventListener('keydown', (e) => {
 /** Un fotograma completo: simulación, cámaras, cielo, nubes, ayudas y render. */
 function frame(realDt) {
   const dt = clock.tick(realDt);
+  sequence.update(dt); // Fase 7.1
   fsm.update(dt); // incluye el mixer de animación
   cameras.update(realDt, dt);
   sky.update(dt);
@@ -125,6 +141,7 @@ function frame(realDt) {
   water.update(dt, sky.light, viewer.sun); // sondas, ondas, espuma y salpicaduras (Fase 5)
   under.update(realDt); // ¿cámara bajo el agua? (Fase 6)
   snow.update(dt, under.underwater, under.state.snow);
+  audio.update(realDt);
   lod.update(viewer.camera);
   helpers.update();
   skeleton.update();
@@ -132,7 +149,7 @@ function frame(realDt) {
   debug.update();
   if (!viewer.ensureSize()) return false; // ventana oculta: evita texturas de tamaño 0
   clouds.render(viewer.camera); // pase de nubes a resolución reducida (Fase 3.4)
-  under.render(); // escena + posprocesado bajo el agua (Fase 6)
+  post.render(); // escena + bajo el agua (Fase 6) + posprocesado global (Fase 7.3)
   viewer.labelRenderer.render(viewer.scene, viewer.camera);
   const c = clock.state;
   stats.update(
@@ -150,7 +167,7 @@ function frame(realDt) {
 if (import.meta.env.DEV) {
   const renderer = viewer.renderer;
   window.whaleViewer = {
-    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, helpers, skeleton, anchor, cameras, debug, params,
+    THREE, viewer, whale, clock, anim, fsm, lod, look, lighting, sky, clouds, ocean, water, under, snow, post, sequence, audio, helpers, skeleton, anchor, cameras, debug, params,
     /** Dibuja n fotogramas a paso fijo aunque la pestaña esté oculta; devuelve el tiempo de GPU del último (ms). */
     async renderFrames(n = 1, realDt = 1 / 30, size = [1280, 720]) {
       if (renderer.domElement.width === 0 || window.innerWidth === 0) {
@@ -164,7 +181,7 @@ if (import.meta.env.DEV) {
         renderer._nodes.nodeFrame.update();
         if (!frame(realDt)) {
           clouds.render(viewer.camera);
-          under.render();
+          post.render();
         }
         await renderer.resolveTimestampsAsync('render');
       }

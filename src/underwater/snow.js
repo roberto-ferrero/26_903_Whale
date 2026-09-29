@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import {
-  cameraPosition, clamp, float, hash, instanceIndex, length, mod, select, sin, smoothstep, uniform, uv, vec2, vec3,
+  cameraPosition, clamp, float, hash, instanceIndex, length, mod, mrt, select, sin, smoothstep, uniform, uv, vec2, vec3, vec4,
 } from 'three/tsl';
 
 /**
@@ -42,6 +42,7 @@ export function createSnow({ scene, ocean, count = 14000 }) {
   const d = length(uv().sub(0.5)).mul(2);
   const fadeEdge = float(1).sub(smoothstep(B * 0.35, B * 0.5, length(rel))); // sin saltos en el borde de la caja
   mat.opacityNode = smoothstep(1.0, 0.2, d).mul(0.55).mul(u.amount).mul(fadeEdge);
+  mat.mrtNode = mrt({ velocity: vec4(0) }); // posición calculada en el shader: sin velocidad
   const sprites = new THREE.Sprite(mat);
   sprites.count = count;
   sprites.frustumCulled = false;

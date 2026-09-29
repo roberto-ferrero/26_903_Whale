@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu';
 import {
   Fn, If, Loop, abs, clamp, cos,
   dot, exp, float, floor, fract, hash, int, screenCoordinate, length, max, min, mix, normalize, pass, perspectiveDepthToViewZ, pow, select,
-  sin, smoothstep, uniform, uv, vec2, vec3, vec4,
+  sin, smoothstep, uniform, uv, vec2, vec3, vec4, mrt, output, velocity,
 } from 'three/tsl';
 
 /**
@@ -59,7 +59,9 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
   const cameraPosition = u.camPos, cameraNear = u.camNear, cameraFar = u.camFar;
   const cameraProjectionMatrixInverse = u.projInv, cameraWorldMatrix = u.camWorld;
 
-  const scenePass = pass(scene, camera);
+  // sin MSAA: el antialiasing lo hace el posprocesado (TAA o FXAA, Fase 7.3), que necesita la velocidad
+  const scenePass = pass(scene, camera, { samples: 0 });
+  scenePass.setMRT(mrt({ output, velocity }));
   const color = scenePass.getTextureNode('output');
   const depth = scenePass.getTextureNode('depth');
 
@@ -156,7 +158,6 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
     return vec4(res, base.a);
   })();
 
-  const pipeline = new THREE.RenderPipeline(renderer, out);
 
   let wasUnder = false;
   let t = 0;
@@ -181,7 +182,10 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
     state,
     apply,
     uniforms: u,
-    pipeline,
+    scenePass,
+    out,
+    /** Hace falta la pasada de posprocesado (cámara cerca del agua o gotas en la lente). */
+    get needsPost() { return u.near.value > 0.5 || u.drops.value > 0.01; },
     get underwater() { return wasUnder; },
     /** Antes de dibujar: ¿cámara bajo el agua o cerca?; gotas en la lente al salir. */
     update(realDt) {
@@ -205,9 +209,6 @@ export function createUnderwater({ renderer, scene, camera, ocean }) {
       state.info = under ? `bajo el agua: ${depthCam.toFixed(1)} m` : depthCam > -2.5 ? 'en la superficie' : 'sobre el agua';
     },
     /** Dibuja la escena; sin posprocesado (1,5 ms menos) si la cámara está lejos del agua y sin gotas. */
-    render() {
-      if (u.near.value > 0.5 || u.drops.value > 0.01) pipeline.render();
-      else renderer.render(scene, camera);
-    },
+
   };
 }

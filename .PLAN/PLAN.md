@@ -1,6 +1,6 @@
 # PLAN: Ballena jorobada saltando en el mar (Three.js)
 
-Versión 0.25 · 29/09/2026
+Versión 0.26 · 29/09/2026
 
 Estado: `[x]` hecho · `[~]` en curso · `[ ]` pendiente
 
@@ -235,12 +235,18 @@ Referencias visuales (5 imágenes en `.PLAN\referencias`):
 
 ---
 
-## [ ] Fase 7: Secuencia y composición final
+## [x] Fase 7: Secuencia y composición final
 
-- [ ] **Fase 7.1 Timeline.** Secuencia: nado profundo → ascenso → salto → impacto → ondas y espuma → vuelta a nadar. Repetible y con disparo manual desde la GUI.
-- [ ] **Fase 7.2 Cámaras cinemáticas.** Planos predefinidos (desde barco, a ras de agua, bajo el agua, aéreo) con cortes o travellings, incluido el paso sobre/bajo agua durante el salto.
-- [ ] **Fase 7.3 Post-procesado global.** TAA, bloom, profundidad de campo, motion blur, *color grading* y grano.
-- [ ] **Fase 7.4 Audio (opcional).** Oleaje ambiente, impacto y ambiente subacuático apagado.
+- [x] **Fase 7.1 Timeline.** Secuencia: nado profundo → ascenso → salto → impacto → ondas y espuma → vuelta a nadar. Repetible y con disparo manual desde la GUI.
+  - Hecho: `core/sequence.js` con la carpeta *Secuencia* (tecla P): repetir, "Saltar ahora", duraciones y profundidades. Oculta las ayudas y restaura todo al parar.
+- [x] **Fase 7.2 Cámaras cinemáticas.** Planos predefinidos (desde barco, a ras de agua, bajo el agua, aéreo) con cortes o travellings, incluido el paso sobre/bajo agua durante el salto.
+  - Hecho: raíles nuevos «Hacia la luz (desde abajo)» y el travelling «Cruce de superficie»; director por fase con cortes secos. Las cámaras sobre el agua siguen la altura real de las olas.
+- [x] **Fase 7.3 Post-procesado global.** TAA, bloom, profundidad de campo, motion blur, *color grading* y grano.
+  - Hecho: `core/post.js` (TAA/FXAA, DOF con enfoque automático, motion blur limitado, bloom, corrección de color y grano; grafo reconstruible). Se corrigió la velocidad del océano, que arruinaba el motion blur.
+- [x] **Fase 7.4 Audio (opcional).** Oleaje ambiente, impacto y ambiente subacuático apagado.
+  - Hecho: `audio/audio.js`, WebAudio procedural: oleaje, impacto y chapoteo con retraso por distancia, filtro bajo el agua y canto de ballena.
+
+**Hecho cuando** (la fase no tenía uno explícito): la secuencia completa se reproduce en bucle con cámaras automáticas, pasando sobre y bajo el agua. ✔ 29/09/2026. Detalle y la secuencia plano a plano: [docs/fase_7_secuencia.md](docs/fase_7_secuencia.md).
 
 ---
 

@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu';
 import {
   Fn, If, Loop, abs, attribute, cameraFar, cameraNear, cameraPosition, clamp, cos, dot, exp, float, floor, frontFacing, length, log2, max, min,
   mix, normalize, perspectiveDepthToViewZ, pmremTexture, positionView, pow, reflect, refract, screenUV, select, sin, smoothstep,
-  sqrt, texture, uniform, uniformArray, varyingProperty, vec2, vec3, viewportDepthTexture, viewportSharedTexture,
+  sqrt, texture, uniform, uniformArray, varyingProperty, vec2, vec3, vec4, mrt, viewportDepthTexture, viewportSharedTexture,
 } from 'three/tsl';
 import { CASCADE_LENGTHS, FFT_SIZE, G, SPECTRUM_DEFAULTS, buildSpectrum, createCpuField } from './spectrum.js';
 import { createFFTOcean } from './fft.js';
@@ -375,6 +375,14 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     return select(p.y.lessThan(u.level), lit, vec3(1));
   };
 
+  // velocidad para TAA y motion blur (Fase 7.3): la malla se genera en el vertex shader, así que la
+  // velocidad de three (posición del atributo) no vale; se reproyecta el punto con la cámara anterior
+  const curVP = uniform(new THREE.Matrix4()), prevVP = uniform(new THREE.Matrix4());
+  const clipCur = curVP.mul(vec4(vPos, 1)), clipPrev = prevVP.mul(vec4(vPos, 1));
+  material.mrtNode = mrt({ velocity: vec4(clipCur.xy.div(clipCur.w).sub(clipPrev.xy.div(clipPrev.w)), 0, 1) });
+  const vpNow = new THREE.Matrix4();
+  let vpReady = false;
+
   const mesh = new THREE.Mesh(geometry, material);
   mesh.frustumCulled = false;
   mesh.renderOrder = 1; // después de la ballena: la refracción la ve
@@ -463,6 +471,10 @@ export function createOcean({ renderer, scene, camera, clouds, sky, getTime, rip
     /** dt de simulación; `light` = sky.light (dirección, color e intensidad del sol, ambiente). */
     update(dt, light, sun) {
       time = getTime();
+      vpNow.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      prevVP.value.copy(vpReady ? curVP.value : vpNow);
+      curVP.value.copy(vpNow);
+      vpReady = true;
       u.time.value = time;
       if (!state.enabled) return;
       if (state.mode === 'FFT') fft.update(time, dt, state.choppiness, state.foamDecay);
